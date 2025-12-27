@@ -1,0 +1,8 @@
+mediapipe==0.10.9
+opencv-python==4.12.0
+pygame==2.6.1
+
+# CKATool
+# - Get the fork from : https://github.com/comtedavid92/ckatool
+# - Install it with : pip install -e .
+CKATool
