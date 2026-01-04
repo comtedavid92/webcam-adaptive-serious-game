@@ -1,24 +1,31 @@
-import mediapipe as mp
+import mediapipe
 
 
 class PoseLandmark:
     
-    RIGHT_SHOULDER   = 11
-    LEFT_SHOULDER    = 12
-    RIGHT_ELBOW      = 13
-    LEFT_ELBOW       = 14
-    RIGHT_WRIST      = 15
-    LEFT_WRIST       = 16
-    RIGHT_PINKY      = 17 # For proxies computation only
-    LEFT_PINKY       = 18 # For proxies computation only
-    RIGHT_INDEX      = 19 # For proxies computation only
-    LEFT_INDEX       = 20 # For proxies computation only
-    RIGHT_HIP        = 23
-    LEFT_HIP         = 24
-    PROXY_MIDDLE_HIP = 25
-    PROXY_RIGHT_HAND = 26
-    PROXY_LEFT_HAND  = 27
-    PROXY_NECK       = 28
+    _MP_RIGHT_SHOULDER = 11
+    _MP_LEFT_SHOULDER  = 12
+    _MP_RIGHT_ELBOW    = 13
+    _MP_LEFT_ELBOW     = 14
+    _MP_RIGHT_WRIST    = 15
+    _MP_LEFT_WRIST     = 16
+    _MP_RIGHT_PINKY    = 17
+    _MP_LEFT_PINKY     = 18
+    _MP_RIGHT_INDEX    = 19
+    _MP_LEFT_INDEX     = 20
+    _MP_RIGHT_HIP      = 23
+    _MP_LEFT_HIP       = 24
+
+    RIGHT_SHOULDER     = 0
+    LEFT_SHOULDER      = 1
+    RIGHT_ELBOW        = 2
+    LEFT_ELBOW         = 3
+    RIGHT_WRIST        = 4
+    LEFT_WRIST         = 5
+    MIDDLE_HIP         = 6
+    RIGHT_HAND         = 7
+    LEFT_HAND          = 8
+    MIDDLE_SHOULDER    = 9
 
     _LANDMARKS = [
         RIGHT_SHOULDER,
@@ -27,27 +34,23 @@ class PoseLandmark:
         LEFT_ELBOW,
         RIGHT_WRIST,
         LEFT_WRIST,
-        RIGHT_HIP,
-        LEFT_HIP,
-        PROXY_MIDDLE_HIP,
-        PROXY_RIGHT_HAND,
-        PROXY_LEFT_HAND,
-        PROXY_NECK,
+        MIDDLE_HIP,
+        RIGHT_HAND,
+        LEFT_HAND,
+        MIDDLE_SHOULDER,
     ]
 
     _CONNECTIONS = [
-        [LEFT_HIP, LEFT_SHOULDER       ],
-        [LEFT_SHOULDER, LEFT_ELBOW     ],
-        [LEFT_ELBOW, LEFT_WRIST        ],
-        [LEFT_WRIST, PROXY_LEFT_HAND   ],
-        [LEFT_SHOULDER, PROXY_NECK     ],
-        [PROXY_NECK, RIGHT_SHOULDER    ],
-        [RIGHT_SHOULDER, RIGHT_ELBOW   ],
-        [RIGHT_ELBOW, RIGHT_WRIST      ],
-        [RIGHT_WRIST, PROXY_RIGHT_HAND ],
-        [RIGHT_SHOULDER, RIGHT_HIP     ],
-        [RIGHT_HIP, PROXY_MIDDLE_HIP   ],
-        [PROXY_MIDDLE_HIP, LEFT_HIP    ],
+        [MIDDLE_HIP, LEFT_SHOULDER],
+        [LEFT_SHOULDER, LEFT_ELBOW],
+        [LEFT_ELBOW, LEFT_WRIST],
+        [LEFT_WRIST, LEFT_HAND],
+        [LEFT_SHOULDER, MIDDLE_SHOULDER],
+        [MIDDLE_SHOULDER, RIGHT_SHOULDER],
+        [RIGHT_SHOULDER, RIGHT_ELBOW],
+        [RIGHT_ELBOW, RIGHT_WRIST],
+        [RIGHT_WRIST, RIGHT_HAND],
+        [RIGHT_SHOULDER, MIDDLE_HIP],
     ]
 
     @staticmethod
@@ -79,20 +82,17 @@ class PoseEstimator:
         self._model = None
         self._landmarks = None
         self._image = None
-        self._min_visibility = 0
+        self._min_visibility = min_visibility
     
         # Check the model complexity
         if model_complexity not in PoseEstimator._MODEL_COMPLEXITIES:
             raise RuntimeError("The model complexity does not exist")
         
         # Set the model
-        self._model = mp.solutions.pose.Pose(
+        self._model = mediapipe.solutions.pose.Pose(
             static_image_mode = False, # Video stream
             model_complexity = model_complexity
         )
-
-        # Set the min visibility
-        self._min_visibility = min_visibility
 
     def close(self):
         # Release the model
@@ -125,45 +125,52 @@ class PoseEstimator:
         # Get the coordinates of the landmark
         result = None
 
-        # PROXY_MIDDLE_HIP
-        if landmark == PoseLandmark.PROXY_MIDDLE_HIP:
+        if landmark == PoseLandmark.RIGHT_SHOULDER:
             result = self._get_landmarks_mean([
-                self._landmarks[PoseLandmark.RIGHT_HIP],
-                self._landmarks[PoseLandmark.LEFT_HIP],
+                self._landmarks[PoseLandmark._MP_RIGHT_SHOULDER],
             ])
-
-        # PROXY RIGHT HAND
-        elif landmark == PoseLandmark.PROXY_RIGHT_HAND:
+        elif landmark == PoseLandmark.LEFT_SHOULDER:
             result = self._get_landmarks_mean([
-                self._landmarks[PoseLandmark.RIGHT_WRIST],
-                self._landmarks[PoseLandmark.RIGHT_PINKY],
-                self._landmarks[PoseLandmark.RIGHT_INDEX],
+                self._landmarks[PoseLandmark._MP_LEFT_SHOULDER],
             ])
-
-        # PROXY LEFT HAND
-        elif landmark == PoseLandmark.PROXY_LEFT_HAND:
+        elif landmark == PoseLandmark.RIGHT_ELBOW:
             result = self._get_landmarks_mean([
-                self._landmarks[PoseLandmark.LEFT_WRIST],
-                self._landmarks[PoseLandmark.LEFT_PINKY],
-                self._landmarks[PoseLandmark.LEFT_INDEX],
+                self._landmarks[PoseLandmark._MP_RIGHT_ELBOW],
             ])
-
-        # PROXY NECK
-        elif landmark == PoseLandmark.PROXY_NECK:
+        elif landmark == PoseLandmark.LEFT_ELBOW:
             result = self._get_landmarks_mean([
-                self._landmarks[PoseLandmark.LEFT_SHOULDER],
-                self._landmarks[PoseLandmark.RIGHT_SHOULDER],
+                self._landmarks[PoseLandmark._MP_LEFT_ELBOW],
             ])
-
-        # LANDMARK
-        else:
-            output = self._landmarks[landmark]
-
-            # Check the reliability
-            if output.visibility < self._min_visibility:
-                return None
-            
-            result = [output.x, output.y, output.z,]
+        elif landmark == PoseLandmark.RIGHT_WRIST:
+            result = self._get_landmarks_mean([
+                self._landmarks[PoseLandmark._MP_RIGHT_WRIST],
+            ])
+        elif landmark == PoseLandmark.LEFT_WRIST:
+            result = self._get_landmarks_mean([
+                self._landmarks[PoseLandmark._MP_LEFT_WRIST],
+            ])
+        elif landmark == PoseLandmark.MIDDLE_HIP:
+            result = self._get_landmarks_mean([
+                self._landmarks[PoseLandmark._MP_RIGHT_HIP],
+                self._landmarks[PoseLandmark._MP_LEFT_HIP],
+            ])
+        elif landmark == PoseLandmark.RIGHT_HAND:
+            result = self._get_landmarks_mean([
+                self._landmarks[PoseLandmark._MP_RIGHT_WRIST],
+                self._landmarks[PoseLandmark._MP_RIGHT_PINKY],
+                self._landmarks[PoseLandmark._MP_RIGHT_INDEX],
+            ])
+        elif landmark == PoseLandmark.LEFT_HAND:
+            result = self._get_landmarks_mean([
+                self._landmarks[PoseLandmark._MP_LEFT_WRIST],
+                self._landmarks[PoseLandmark._MP_LEFT_PINKY],
+                self._landmarks[PoseLandmark._MP_LEFT_INDEX],
+            ])
+        elif landmark == PoseLandmark.MIDDLE_SHOULDER:
+            result = self._get_landmarks_mean([
+                self._landmarks[PoseLandmark._MP_LEFT_SHOULDER],
+                self._landmarks[PoseLandmark._MP_RIGHT_SHOULDER],
+            ])
 
         return result
     
@@ -177,7 +184,7 @@ class PoseEstimator:
             result[landmark] = output
 
         return result
-    
+
     def _get_landmarks_mean(self, landmarks):
         # Check the reliability
         for landmark in landmarks:
@@ -185,15 +192,13 @@ class PoseEstimator:
                 return None
 
         # Compute the mean
-        result = [0, 0, 0]
+        result = [0, 0]
         for landmark in landmarks:
             result[0] = result[0] + landmark.x
             result[1] = result[1] + landmark.y
-            result[2] = result[2] + landmark.z
 
         size = len(landmarks)
         result[0] = result[0] / size
         result[1] = result[1] / size
-        result[2] = result[2] / size
 
         return result
