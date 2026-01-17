@@ -63,7 +63,7 @@ With 4 clusters, the adjusted rand index indicated a result of 1.0.
 To record movements, run :
 
 ```bash
-python ../__recorder.py
+python ../__movements_record.py
 ```
 
 ### Cluster analysis
@@ -77,7 +77,7 @@ Concatenate the kinematics into a single file :
 To run the analysis, run :
 
 ```bash
-python analysis.py
+python cluster_analysis.py
 ```
 
 ## Disclaimer
