@@ -70,7 +70,7 @@ def create_objects():
 
 def create_events():
     # Create the events
-    game_controller.create_event_dwell(TARGET_START_EVENT_ID, TARGET_START_ID, PoseLandmark.RIGHT_HAND, 2500)
+    game_controller.create_event_dwell(TARGET_START_EVENT_ID, TARGET_START_ID, PoseLandmark.RIGHT_HAND, 1000)
     game_controller.create_event_dwell(TARGET_END_EVENT_ID, TARGET_END_ID, PoseLandmark.RIGHT_HAND, 500)
 
 
@@ -193,6 +193,11 @@ def update_objects(landmarks_as_px):
     target_color = GameController.COLOR_GREEN
     if GAME_RECORDING: target_color = GameController.COLOR_BLACK
     game_controller.update_object_circle(TARGET_START_ID, None, None, target_color, None)
+
+    # Update the end target
+    target_color = GameController.COLOR_RED
+    if not GAME_RECORDING: target_color = GameController.COLOR_BLACK
+    game_controller.update_object_circle(TARGET_END_ID, None, None, target_color, None)
 
     # Update the landmarks
     for landmark_id in PoseLandmark.get_landmarks():
