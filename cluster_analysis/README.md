@@ -54,7 +54,7 @@ Other kinematics also showed good ability to distinguish, but did not provide mu
 
 <img src="docs/silouhette_score.png" alt="" width="400"/>
 
-- With 4 clusters, the adjusted rand index indicated a result of 1.0.
+- With 4 clusters, the adjusted rand index indicated a result of 1
 
 ## Reproduce the experiment
 
