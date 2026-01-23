@@ -46,15 +46,15 @@ Other kinematics also showed good ability to distinguish, but did not provide mu
 
 ### Cluster analysis
 
-The elbow method indicated 4 clusters :
+- The elbow method indicated 4 clusters :
 
-![Elbow method](docs/elbow_method.png)
+<img src="docs/elbow_method.png" alt="" width="400"/>
 
-The silhouette score indicated also 4 clusters :
+- The silhouette score indicated also 4 clusters :
 
-![Elbow method](docs/silouhette_score.png)
+<img src="docs/silouhette_score.png" alt="" width="400"/>
 
-With 4 clusters, the adjusted rand index indicated a result of 1.0.
+- With 4 clusters, the adjusted rand index indicated a result of 1.0.
 
 ## Reproduce the experiment
 
