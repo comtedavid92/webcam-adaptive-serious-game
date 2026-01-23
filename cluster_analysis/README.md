@@ -21,6 +21,10 @@ For each profile, 15 "reach-to-target" movements were done.
 
 The camera was placed at a fixed distance for all attempted profiles. In addition, the coordinates were normalised by shoulder width to reduce errors related to the camera distance.
 
+Data flow :
+
+<img src="docs/data_flow.png" alt="" width="700"/>
+
 Expected results :
 
 - The elbow method will indicate 4 clusters
@@ -82,6 +86,4 @@ python cluster_analysis.py
 
 ## Disclaimer
 
-I am the only participant, the data in the experiments folder is mine.
-
-No data from other participants were collected, and so no personal data protection issues are involved.
+I am the only participant, the data in the experiments folder is mine. No data from other participants were collected, and so no personal data protection issues are involved.
