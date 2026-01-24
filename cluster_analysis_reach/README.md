@@ -1,4 +1,4 @@
-# Cluster Analysis
+# Cluster analysis (reach)
 
 This analysis aimed to validate the setup based on a 2D webcam, MediaPipe and the kinematics from CKATool.
 
@@ -67,7 +67,7 @@ Other kinematics also showed good ability to distinguish, but did not provide mu
 To record movements, run :
 
 ```bash
-python ../__movements_record.py
+python ../__record_reach.py
 ```
 
 ### Cluster analysis

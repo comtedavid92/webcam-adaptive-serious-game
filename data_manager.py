@@ -86,6 +86,7 @@ class DataManager:
         self._iteration_number = 0
         self._iteration_side = 0
         self._iteration = None
+        self._last_iteration = None
 
         # Create the folder
         os.makedirs(folder, exist_ok=True) # Avoid already existing error
@@ -143,6 +144,7 @@ class DataManager:
         self._write_coordinates_data(it)
         self._write_kinematics_data(it)
 
+        self._last_iteration = self._iteration # Save the iteration
         self._iteration = None # Unset the iteration
 
     def add_data(self, timestamp, neck_x, neck_y, hip_x, hip_y, shoulder_x, shoulder_y, elbow_x,
