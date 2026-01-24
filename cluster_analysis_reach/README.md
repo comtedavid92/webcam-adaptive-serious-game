@@ -1,16 +1,17 @@
 # Cluster analysis (reach)
 
-This analysis aimed to validate the setup based on a 2D webcam, MediaPipe and the kinematics from CKATool.
+This analysis aimed to validate the setup based on a 2D webcam, MediaPipe and the kinematics from CKATool. It also aimed to identify the right kinematics for classifying movements.
 
-Since the 2D camera does not have a depth sensor, the Z coordinates have all been set to zero.
+Notes :
 
-The CKATool version used is a fork : https://github.com/comtedavid92/ckatool. This version has some changes, please read its README for more information.
+- The CKATool version used is a fork : https://github.com/comtedavid92/ckatool. This version has some changes, please read its README for more information
+- Since the 2D camera does not have a depth sensor, the Z coordinates have all been set to zero
 
 ## Experiment
 
 The use case is : post-stroke upper-limb rehabilitation.
 
-For this experiment, four simulated profiles were attempted :
+For this experiment, 4 simulated profiles were attempted :
 
 - Profile 1 (healthy) : natural movements
 - Profile 2 (mild simulated impairment) : natural but slow movements

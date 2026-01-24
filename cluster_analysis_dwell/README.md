@@ -1,6 +1,6 @@
 # Cluster analysis (dwell)
 
-This is an analysis similar the [reach](../cluster_analysis_reach/) one. Please read first the reach analysis. Here, the goal is not to reach a target, but to keep the hand above a target (dwell).
+Please read first the [cluster analysis](../cluster_analysis_reach/) of the "reach-to-target" movements, as it gives the context and additional information. For this analysis, the goals were similar, but it was done for the classification of "target-stabilization" tasks.
 
 ## Results
 
@@ -49,9 +49,9 @@ As the results were not conclusive, profiles 1 and 2 were grouped together, and 
 
 ## Reproduce the experiment
 
-### Hold record
+### Tasks record
 
-To record a hold, run :
+To record tasks, run :
 
 ```bash
 python ../__record_dwell.py
