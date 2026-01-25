@@ -28,17 +28,13 @@ CONNECTION_WIDTH      = 2 #px
 TARGET_RADIUS         = 20 #px
 
 TARGET_START_ID       = 100
-TARGET_END_ID         = 101
-TEXT_ID               = 102
+TEXT_ID               = 101
 
 TARGET_START_EVENT_ID = 1
 TARGET_END_EVENT_ID   = 2
 
-TARGET_START_X        = CANVAS_WIDTH - 400 #px
-TARGET_START_Y        = CANVAS_HEIGHT - 400 #px
-
-TARGET_END_X          = CANVAS_WIDTH / 2 #px
-TARGET_END_Y          = 200 #px
+TARGET_START_X        = CANVAS_WIDTH / 2 #px
+TARGET_START_Y        = 200 #px
 
 TEXT_X                = 50 #px
 TEXT_Y                = 50 #px
@@ -61,7 +57,6 @@ def create_objects():
 
     # Create the targets
     game_controller.create_object_circle(TARGET_START_ID, TARGET_START_X, TARGET_START_Y, GameController.COLOR_GREEN, TARGET_RADIUS)
-    game_controller.create_object_circle(TARGET_END_ID, TARGET_END_X, TARGET_END_Y, GameController.COLOR_RED, TARGET_RADIUS)
 
     # Create the landmarks
     for landmark_id in PoseLandmark.get_landmarks():
@@ -70,8 +65,8 @@ def create_objects():
 
 def create_events():
     # Create the events
-    game_controller.create_event_dwell(TARGET_START_EVENT_ID, TARGET_START_ID, PoseLandmark.RIGHT_HAND, 1000)
-    game_controller.create_event_dwell(TARGET_END_EVENT_ID, TARGET_END_ID, PoseLandmark.RIGHT_HAND, 500)
+    game_controller.create_event_dwell(TARGET_START_EVENT_ID, TARGET_START_ID, PoseLandmark.RIGHT_HAND, 500)
+    game_controller.create_event_dwell(TARGET_END_EVENT_ID, TARGET_START_ID, PoseLandmark.RIGHT_HAND, 2500)
 
 
 def get_image():
@@ -189,15 +184,10 @@ def update_objects(landmarks_as_px):
     if GAME_RECORDING: text_text = TEXT_RECORDING
     game_controller.update_object_text(TEXT_ID, None, None, None, text_text, None)
 
-    # Update the start target
+    # Update the target
     target_color = GameController.COLOR_GREEN
-    if GAME_RECORDING: target_color = GameController.COLOR_BLACK
+    if GAME_RECORDING: target_color = GameController.COLOR_RED
     game_controller.update_object_circle(TARGET_START_ID, None, None, target_color, None)
-
-    # Update the end target
-    target_color = GameController.COLOR_RED
-    if not GAME_RECORDING: target_color = GameController.COLOR_BLACK
-    game_controller.update_object_circle(TARGET_END_ID, None, None, target_color, None)
 
     # Update the landmarks
     for landmark_id in PoseLandmark.get_landmarks():
@@ -223,7 +213,7 @@ def update_data(timestamp, normalized_landmarks_and_targets):
     elbow = normalized_landmarks_and_targets.get(PoseLandmark.RIGHT_ELBOW)
     wrist = normalized_landmarks_and_targets.get(PoseLandmark.RIGHT_WRIST)
     end_effector = normalized_landmarks_and_targets.get(PoseLandmark.RIGHT_HAND)
-    target = normalized_landmarks_and_targets.get(TARGET_END_ID)
+    target = normalized_landmarks_and_targets.get(TARGET_START_ID)
 
     # Check the data
     landmarks = [neck, hip, shoulder, elbow, wrist, end_effector, target]
@@ -255,7 +245,7 @@ def main():
         if GAME_RECORDING:
             timestamp = time.time()
             landmarks_and_targets = landmarks_as_px.copy()
-            landmarks_and_targets[TARGET_END_ID] = [TARGET_END_X, TARGET_END_Y]
+            landmarks_and_targets[TARGET_START_ID] = [TARGET_START_X, TARGET_START_Y]
             normalized_landmarks_and_targets = get_normalized_landmarks_and_targets(landmarks_and_targets)
             update_data(timestamp, normalized_landmarks_and_targets)
 
