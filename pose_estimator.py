@@ -60,10 +60,21 @@ class PoseLandmark:
     @staticmethod
     def get_landmarks():
         return PoseLandmark._LANDMARKS
-    
+
     @staticmethod
     def get_connections():
         return PoseLandmark._CONNECTIONS
+    
+    @staticmethod
+    def exclude_landmarks(landmarks):
+        for landmark in landmarks:
+            # Remove landmark
+            PoseLandmark._LANDMARKS.remove(landmark)
+            
+            # Remove connection
+            for connection in PoseLandmark._CONNECTIONS:
+                if connection[0] == landmark or connection[1] == landmark:
+                    PoseLandmark._CONNECTIONS.remove(connection)
 
 
 class PoseEstimator:
