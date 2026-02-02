@@ -209,28 +209,34 @@ class _GameEvent:
         self.type = type
         self.object1 = None
         self.object2 = None
-        self.prev_state = False
-        self.final_state = False
+        self.continuous_state = False
+        self.prev_trigger_state = False
+        self.trigger_state = False
         # Expired
         self.max_duration_ms = 0
         # Dwell
         self.min_duration_ms = 0
         self.enter_dwell_ts = 0
 
-    def update_state(self):
+    def update_continuous_state(self):
         state = False
+        
         if self.type == _GameEvent.EXPIRED:
             state = self._get_expired()
         elif self.type == _GameEvent.CONTACT:
             state = self._get_contact()
         elif self.type == _GameEvent.DWELL:
             state = self._get_dwell()
+        
+        self.continuous_state = state
 
-        self.final_state = False
+    def update_state(self):
+        state = self.continuous_state
+        self.trigger_state = False
 
-        # The final state is true only when the state changes from false to true
-        if state and not self.prev_state: self.final_state = True
-        self.prev_state = state
+        # The trigger state is true only when the state changes from false to true
+        if state and not self.prev_trigger_state: self.trigger_state = True
+        self.prev_trigger_state = state
 
     def _get_expired(self):
         return self.object1.is_expired(self.max_duration_ms)
@@ -257,13 +263,19 @@ class GameController:
 
     COLOR_WHITE = (255, 255, 255)
     COLOR_BLACK = (0, 0, 0)
-    COLOR_RED   = (255, 0, 0)
-    COLOR_GREEN = (0, 255, 0)
-    COLOR_BLUE  = (0, 255, 255)
+    COLOR_RED   = (231, 76, 60)
+    COLOR_GREEN = (46, 204, 113)
+    COLOR_BLUE  = (52, 152, 219)
+    COLOR_ORANGE = (230, 126, 34)
 
-    def __init__(self, fps, canvas_width, canvas_height):
+    def __init__(self, fps, canvas_width, canvas_height, name = None, icon = None):
         pygame.init()
         pygame.font.init()
+
+        if name is not None: pygame.display.set_caption(name)
+        if icon is not None:
+            icon = pygame.image.load(icon)
+            pygame.display.set_icon(icon)
 
         self._running = True
         self._clock = pygame.time.Clock()
@@ -291,6 +303,7 @@ class GameController:
         # Proces the custom events
         for event in self._events:
             event = self._events[event]
+            event.update_continuous_state()
             event.update_state()
 
     def refresh_screen(self):
@@ -299,7 +312,7 @@ class GameController:
             self._background.draw(self._surface)
         
         # Draw the persistent object
-        for object_id in self._persistent_objects:
+        for object_id in sorted(self._persistent_objects):
             obj = self._persistent_objects[object_id]
             obj.draw(self._surface)
 
@@ -370,11 +383,43 @@ class GameController:
     def get_running_state(self):
         return self._running
     
+    def get_event_continuous_state(self, event_id):
+        event = self._events.get(event_id)
+        if event is None: raise RuntimeError("The event id does not exist")
+        return event.continuous_state
+
     def get_event_state(self, event_id):
         event = self._events.get(event_id)
         if event is None: raise RuntimeError("The event id does not exist")
-        return event.final_state
+        return event.trigger_state
     
+    def get_event_expired_remaining_time_ms(self, event_id):
+        event = self._events.get(event_id)
+        if event is None: raise RuntimeError("The event id does not exist")
+        if event.type != _GameEvent.EXPIRED: raise RuntimeError("The event is not of type expired")
+        current_ts = time.time()
+        creation_ts = event.object1.creation_ts
+        duration_ms = (current_ts - creation_ts) * 1000
+        max_duration_ms = event.max_duration_ms
+        remaining_time_ms = max(0, max_duration_ms - duration_ms)
+        return remaining_time_ms
+    
+    def get_event_dwell_remaining_time_ms(self, event_id):
+        event = self._events.get(event_id)
+        if event is None: raise RuntimeError("The event id does not exist")
+        if event.type != _GameEvent.DWELL: raise RuntimeError("The event is not of type dwell")
+        
+        current_ts = time.time()
+        remaining_time_ms = 0
+        
+        if event.enter_dwell_ts == 0:
+            remaining_time_ms = event.min_duration_ms
+        else:
+            duration_ms = (current_ts - event.enter_dwell_ts) * 1000
+            remaining_time_ms = max(0, event.min_duration_ms - duration_ms)
+        
+        return remaining_time_ms
+
     def _add_in_transient_or_persistent_objects(self, object_id, obj):
         if object_id is None: self._transient_objects.append(obj)
         else: self._persistent_objects[object_id] = obj

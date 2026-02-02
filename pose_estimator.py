@@ -16,16 +16,16 @@ class PoseLandmark:
     _MP_RIGHT_HIP      = 23
     _MP_LEFT_HIP       = 24
 
-    RIGHT_SHOULDER     = 0
-    LEFT_SHOULDER      = 1
-    RIGHT_ELBOW        = 2
-    LEFT_ELBOW         = 3
-    RIGHT_WRIST        = 4
-    LEFT_WRIST         = 5
-    MIDDLE_HIP         = 6
-    RIGHT_HAND         = 7
-    LEFT_HAND          = 8
-    MIDDLE_SHOULDER    = 9
+    RIGHT_SHOULDER     = 1000
+    LEFT_SHOULDER      = 1001
+    RIGHT_ELBOW        = 1002
+    LEFT_ELBOW         = 1003
+    RIGHT_WRIST        = 1004
+    LEFT_WRIST         = 1005
+    MIDDLE_HIP         = 1006
+    RIGHT_HAND         = 1007
+    LEFT_HAND          = 1008
+    MIDDLE_SHOULDER    = 1009
 
     _LANDMARKS = [
         RIGHT_SHOULDER,

@@ -8,6 +8,7 @@ class _DataIteration:
 
     def __init__(self):
         self.side = []
+        self.type = []
         self.iteration = []
         self.timestamp = []
         self.neck_x = []
@@ -85,8 +86,9 @@ class DataManager:
     def __init__(self, folder):
         self._iteration_number = 0
         self._iteration_side = 0
+        self._iteration_type = 0
         self._iteration = None
-        self._last_iteration = None
+        self._last_iterations = {}
 
         # Create the folder
         os.makedirs(folder, exist_ok=True) # Avoid already existing error
@@ -99,7 +101,7 @@ class DataManager:
     def close(self):
         pass
 
-    def start_iteration(self, side):
+    def start_iteration(self, side, type = 0):
         # Check the side
         if side not in DataManager._SIDES: raise RuntimeError("The side does not exist")
 
@@ -110,6 +112,7 @@ class DataManager:
         # Set the iteration
         self._iteration_number = self._iteration_number + 1
         self._iteration_side = side
+        self._iteration_type = type
         self._iteration = _DataIteration()
 
     def end_iteration(self):
@@ -144,7 +147,7 @@ class DataManager:
         self._write_coordinates_data(it)
         self._write_kinematics_data(it)
 
-        self._last_iteration = self._iteration # Save the iteration
+        self._last_iterations[self._iteration_type] = self._iteration # Save the iteration
         self._iteration = None # Unset the iteration
 
     def add_data(self, timestamp, neck_x, neck_y, hip_x, hip_y, shoulder_x, shoulder_y, elbow_x,
@@ -155,6 +158,7 @@ class DataManager:
 
         # Add the data
         it.side.append(self._iteration_side)
+        it.type.append(self._iteration_type)
         it.iteration.append(self._iteration_number)
         it.timestamp.append(timestamp)
         it.neck_x.append(neck_x)
@@ -178,6 +182,13 @@ class DataManager:
         it.target_x.append(target_x)
         it.target_y.append(target_y)
         it.target_z.append(0)
+
+        # Check the number of data
+        # (CKATool crashes when there is less than 16 data)
+        number_of_data = len(self._iteration.side)
+        enough_data = number_of_data >= 16
+
+        return enough_data
 
     def _compute_kinematics(self, neck, hip, shoulder, elbow, wrist, end_effector, target):
         neck.calculate_trunk_angle(hip, [0, -1, 0])
@@ -264,7 +275,7 @@ class DataManager:
     def _write_coordinates_header(self):
         # Get the header
         header = [
-            "side", "iteration", "timestamp",
+            "side", "type", "iteration", "timestamp",
             "neck_x", "neck_y", "neck_z",
             "hip_x", "hip_y", "hip_z",
             "shoulder_x", "shoulder_y", "shoulder_z",
@@ -284,7 +295,7 @@ class DataManager:
             while i < len(it.iteration):
                 # Get the line
                 line = [
-                    it.side[i], it.iteration[i], it.timestamp[i],
+                    it.side[i], it.type[i], it.iteration[i], it.timestamp[i],
                     it.neck_x[i], it.neck_y[i], it.neck_z[i],
                     it.hip_x[i], it.hip_y[i], it.hip_z[i],
                     it.shoulder_x[i], it.shoulder_y[i], it.shoulder_z[i],
@@ -303,7 +314,7 @@ class DataManager:
     def _write_kinematics_header(self):
         # Get the header
         header = [
-            "side", "iteration",
+            "side", "type", "iteration",
             "shoulder_number_of_velocity_peaks", "elbow_number_of_velocity_peaks", "wrist_number_of_velocity_peaks",
             "shoulder_ratio_mean_peak_velocity", "elbow_ratio_mean_peak_velocity", "wrist_ratio_mean_peak_velocity",
             "shoulder_mean_velocity", "elbow_mean_velocity", "wrist_mean_velocity",
@@ -323,7 +334,7 @@ class DataManager:
     def _write_kinematics_data(self, it):
         # Get the line
         line = [
-            it.side[0], it.iteration[0],
+            it.side[0], it.type[0], it.iteration[0],
             it.shoulder_number_of_velocity_peaks, it.elbow_number_of_velocity_peaks, it.wrist_number_of_velocity_peaks,
             it.shoulder_ratio_mean_peak_velocity, it.elbow_ratio_mean_peak_velocity, it.wrist_ratio_mean_peak_velocity,
             it.shoulder_mean_velocity, it.elbow_mean_velocity, it.wrist_mean_velocity,
