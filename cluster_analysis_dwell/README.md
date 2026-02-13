@@ -1,6 +1,6 @@
 # Cluster analysis (dwell)
 
-Please read first the [cluster analysis](../cluster_analysis_reach/) of the "reach-to-target" movements, as it gives the context and additional information. For this analysis, the goals were similar, but it was done for the classification of "target-stabilization" tasks.
+Please read first the [cluster analysis](../cluster_analysis_reach/) of the "reach-to-target" movements, as it gives the context and additional information. For this analysis, the goals were similar, but it was done for the classification of "target-stabilization" tasks. In these tasks, the goal is to keep the hand inside the target for an amount of time. If the hand leaves the target, the timer is reset.
 
 ## Results
 
@@ -8,44 +8,101 @@ Please read first the [cluster analysis](../cluster_analysis_reach/) of the "rea
 
 After the Excel analysis, these kinematics were selected :
 
-- wrist_number_of_velocity_peaks
-- wrist_mean_velocity
-- wrist_movement_time
-- target_error_distance
+<table>
+<thead>
+<tr>
+    <th width="300px">Kinematic</th>
+    <th width="400px">Plot</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+    <td>wrist_number_of_velocity_peaks</td>
+    <td><img src="docs/wrist_number_of_velocity_peaks.png" alt=""/></td>
+</tr>
+<tr>
+    <td>wrist_mean_velocity</td>
+    <td><img src="docs/wrist_mean_velocity.png" alt=""/></td>
+</tr>
+<tr>
+    <td>wrist_movement_time</td>
+    <td><img src="docs/wrist_movement_time.png" alt=""/></td>
+</tr>
+<tr>
+    <td>target_error_distance</td>
+    <td><img src="docs/target_error_distance.png" alt=""/></td>
+</tr>
+</tbody>
+</table>
 
 ### Cluster analysis
 
-- The elbow method indicated 4 clusters :
-
-<img src="docs/elbow_method.png" alt="" width="400"/>
-
-- The silhouette score indicated 2 clusters :
-
-<img src="docs/silouhette_score.png" alt="" width="400"/>
-
-- With 2 clusters, the adjusted rand index indicated a result of 0.14
-
-- With 4 clusters, the adjusted rand index indicated a result of 0.38
+<table>
+<tr>
+    <th width="300px">Metric</th>
+    <th width="400px">Result</th>
+</tr>
+<tr>
+    <td>Inertia (elbow method)</td>
+    <td><img src="docs/inertia.png" alt=""/></td>
+</tr>
+<tr>
+    <td>Silhouette score</td>
+    <td><img src="docs/silhouette_score.png" alt=""/></td>
+</tr>
+<tr>
+    <td>Adjusted rand index (k=2)</td>
+    <td>0.15</td>
+</tr>
+<tr>
+    <td>Adjusted rand index (k=4)</td>
+    <td>0.38</td>
+</tr>
+</table>
 
 ### Excel analysis (grouped)
 
-As the results were not conclusive, profiles 1 and 2 were grouped together, and the same was done for profiles 3 and 4. After the Excel analysis, these kinematics were selected :
+As the results were not conclusive, profiles 1 and 2 were grouped together, and the same was done for profiles 3 and 4. After the Excel analysis, this kinematic was selected :
 
-- wrist_mean_velocity
+<table>
+<thead>
+<tr>
+    <th width="300px">Kinematic</th>
+    <th width="400px">Plot</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+    <td>wrist_mean_velocity</td>
+    <td><img src="docs/wrist_mean_velocity_grouped.png" alt=""/></td>
+</tr>
+</tbody>
+</table>
 
 ### Cluster analysis (grouped)
 
-- The elbow method indicated 4 clusters :
-
-<img src="docs/elbow_method_grouped.png" alt="" width="400"/>
-
-- The silhouette score indicated 2 clusters :
-
-<img src="docs/silouhette_score_grouped.png" alt="" width="400"/>
-
-- With 2 clusters, the adjusted rand index indicated a result of 0.87
-
-- With 4 clusters, the adjusted rand index indicated a result of 0.66
+<table>
+<tr>
+    <th width="300px">Metric</th>
+    <th width="400px">Result</th>
+</tr>
+<tr>
+    <td>Inertia (elbow method)</td>
+    <td><img src="docs/inertia_grouped.png" alt=""/></td>
+</tr>
+<tr>
+    <td>Silhouette score</td>
+    <td><img src="docs/silhouette_score_grouped.png" alt=""/></td>
+</tr>
+<tr>
+    <td>Adjusted rand index (k=2)</td>
+    <td>0.87</td>
+</tr>
+<tr>
+    <td>Adjusted rand index (k=4)</td>
+    <td>0.66</td>
+</tr>
+</table>
 
 ## Reproduce the experiment
 
