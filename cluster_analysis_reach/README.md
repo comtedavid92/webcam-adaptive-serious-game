@@ -26,7 +26,7 @@ Data flow :
 
 <img src="docs/data_flow.png" alt="" width="700"/>
 
-Expected results : the movements will naturally separate into 4 distinct clusters (from healthy to severe simulated impairment profiles). This would indicate that the setup is relevant for a simple "reach-to-target" serious game and that a data-based dynamic difficulty adjustment technique can learn from the kinematics.
+Expected results : the movements will naturally separate into 4 distinct clusters (from healthy to severe simulated impairment profiles). This indicating that the setup is relevant for a simple "reach-to-target" serious game and that a data-based dynamic difficulty adjustment technique can learn from the kinematics.
 
 ## Results
 
@@ -80,7 +80,7 @@ The cluster analysis showed that the movements naturally separate into 4 cluster
 </tr>
 <tr>
     <td>Inertia (elbow method)</td>
-    <td><img src="docs/elbow_method.png" alt=""/></td>
+    <td><img src="docs/inertia.png" alt=""/></td>
 </tr>
 <tr>
     <td>Silhouette score</td>
