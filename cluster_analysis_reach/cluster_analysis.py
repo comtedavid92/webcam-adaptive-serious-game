@@ -2,79 +2,63 @@ import pandas
 import sklearn
 import matplotlib.pyplot
 
-
-# Read the CSV
+# Get the CSV as a data frame
+# https://pandas.pydata.org/docs/getting_started/intro_tutorials/02_read_write.html
 csv = pandas.read_csv("kinematics.csv")
 
-# Set the features to keep
-# The features to keep come from the Excel analysis
-features = [
+# Get two subsets of the data frame
+# https://pandas.pydata.org/docs/getting_started/intro_tutorials/03_subset_data.html
+profiles_frame = csv["profile"]
+data_frame = csv[[
     "wrist_number_of_velocity_peaks",
     "wrist_mean_velocity",
     "wrist_sparc",
     "wrist_jerk",
     "trunk_rom",
     "hand_path_ratio"
-]
-
-# Filter the CSV
-# Example, data[['col1', 'col2']] keeps only col1 and col2
-profiles_frame = csv["profile"]
-data_frame = csv[features]
-
-# Get a 2D array (n rows, n columns)
-profiles_array = profiles_frame.values
-data_array = data_frame.values
+]]
 
 # Normalize the data
-scaler = sklearn.preprocessing.StandardScaler()
-data_array = scaler.fit_transform(data_array)
+# https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.scale.html
+data_frame = sklearn.preprocessing.scale(data_frame)
 
-# Try different number of clusters
-# - Inertia is Sum of Squared Errors (SSE)
-# - Silouette score tells how well the data points are grouped within their own cluster compared to how separated they are from other clusters
-# Source
-# - https://www.w3schools.com/python/python_ml_k-means.asp
-# - https://www.datacamp.com/tutorial/k-means-clustering-python
-# - https://scikit-learn.org/stable/modules/generated/sklearn.cluster.KMeans.html
-inertia = []
-silhouette_score = []
+# Set the comparison metrics
+# https://medium.com/@jeffzyme/understanding-inertia-distortion-and-silhouette-scores-and-their-differences-key-metrics-for-458fe28ce2aa
+inertias = []
+silhouette_scores = []
+
+# Compute k-means with different numbers of clusters
+# https://www.w3schools.com/python/python_ml_k-means.asp
 ks = range(2, 10)
-
 for k in ks:
-    # Compute K-means
-    km = sklearn.cluster.KMeans(n_clusters=k, random_state = 0, n_init='auto')
-    labels = km.fit_predict(data_array)
-    # Add inertia
-    inertia.append(km.inertia_)
-    # Add silouhette score
-    sc = sklearn.metrics.silhouette_score(data_array, labels)
-    silhouette_score.append(sc)
+    kmeans = sklearn.cluster.KMeans(n_clusters=k, random_state=0) # The parameter random_state=0 is used for reproducibility
+    labels = kmeans.fit_predict(data_frame) # The labels variable contains the assigned cluster index for each data
+    inertias.append(kmeans.inertia_) # The inertia is the sum of the distances of each data point to its cluster centroid
+    score = sklearn.metrics.silhouette_score(data_frame, labels) # The silhouette score indicates how well the data belong to their cluster and how far they are from other clusters
+    silhouette_scores.append(score)
 
-# Diplay the inertia plot
+# Diplay the inertias plot
 matplotlib.pyplot.figure() # New plot
 matplotlib.pyplot.grid(True) # Add grid
-matplotlib.pyplot.title("K-means, inertia (SSE)")
+matplotlib.pyplot.title("K-means | reach step | inertia")
 matplotlib.pyplot.xlabel("Number of clusters")
-matplotlib.pyplot.ylabel("inertia (SSE)")
-matplotlib.pyplot.plot(list(ks), inertia, marker="x")
+matplotlib.pyplot.ylabel("Inertia")
+matplotlib.pyplot.plot(list(ks), inertias, marker="x")
 matplotlib.pyplot.show()
 
 # Diplay the silhouette score plot
 matplotlib.pyplot.figure() # New plot
 matplotlib.pyplot.grid(True) # Add grid
-matplotlib.pyplot.title("K-means, silouhette score")
+matplotlib.pyplot.title("K-means | reach step | silhouette score")
 matplotlib.pyplot.xlabel("Number of clusters")
 matplotlib.pyplot.ylabel("Silouhette score")
-matplotlib.pyplot.plot(list(ks), silhouette_score, marker="x")
+matplotlib.pyplot.plot(list(ks), silhouette_scores, marker="x")
 matplotlib.pyplot.show()
 
-# Compute validation
-# - Here, K-Means is computed with k=4 to assign each data sample to a cluster
-# - The obtained cluster labels are then compared with the true profiles using the adjusted rand index to evaluate the clustering result
-# Sources
-# - https://scikit-learn.org/stable/modules/generated/sklearn.metrics.adjusted_rand_score.html
-km = sklearn.cluster.KMeans(n_clusters=4, random_state = 0, n_init='auto')
-labels = km.fit_predict(data_array)
-ari = sklearn.metrics.adjusted_rand_score(profiles_array, labels)
-print("ARI:", ari)
+# Compute the adjusted rand index
+# https://scikit-learn.org/stable/modules/generated/sklearn.metrics.adjusted_rand_score.html
+k = 4
+kmeans = sklearn.cluster.KMeans(n_clusters=k, random_state = 0)
+labels = kmeans.fit_predict(data_frame)
+ari = sklearn.metrics.adjusted_rand_score(profiles_frame, labels)
+print("Adjusted rand index : " + str(ari))

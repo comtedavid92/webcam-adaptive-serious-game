@@ -26,13 +26,7 @@ Data flow :
 
 <img src="docs/data_flow.png" alt="" width="700"/>
 
-Expected results :
-
-- The elbow method will indicate 4 clusters
-- The silhouette score will indicate 4 clusters
-- With 4 clusters, the adjusted rand index will be high
-
-Together, these results would confirm that the setup is relevant for a simple "reach-to-target" serious game.
+Expected results : the movements will naturally separate into 4 distinct clusters (from healthy to severe simulated impairment profiles). This would indicate that the setup is relevant for a simple "reach-to-target" serious game and that a data-based dynamic difficulty adjustment technique can learn from the kinematics.
 
 ## Results
 
@@ -47,19 +41,28 @@ An initial analysis was performed using Excel where each kinematic was plotted a
 - trunk_rom
 - hand_path_ratio
 
-Other kinematics also showed good ability to distinguish, but did not provide much additional information. Other features were not sufficiently discriminative and were excluded.
-
 ### Cluster analysis
 
-- The elbow method indicated 4 clusters :
+The cluster analysis showed that the movements naturally separate into 4 clusters :
 
-<img src="docs/elbow_method.png" alt="" width="400"/>
-
-- The silhouette score indicated also 4 clusters :
-
-<img src="docs/silouhette_score.png" alt="" width="400"/>
-
-- With 4 clusters, the adjusted rand index indicated a result of 1
+<table>
+<tr>
+    <td>Metric</td>
+    <td>Result</td>
+</tr>
+<tr>
+    <td>Inertia (elbow method)</td>
+    <td><img src="docs/elbow_method.png" alt="Elbow method plot" width="400"/></td>
+</tr>
+<tr>
+    <td>Silhouette score</td>
+    <td><img src="docs/silhouette_score.png" alt="Silhouette score plot" width="400"/></td>
+</tr>
+<tr>
+    <td>Adjusted rand index</td>
+    <td>1.0</td>
+</tr>
+</table>
 
 ## Reproduce the experiment
 
