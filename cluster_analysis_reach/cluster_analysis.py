@@ -33,7 +33,7 @@ ks = range(2, 10)
 for k in ks:
     kmeans = sklearn.cluster.KMeans(n_clusters=k, random_state=0) # The parameter random_state=0 is used for reproducibility
     labels = kmeans.fit_predict(data_frame) # The labels variable contains the assigned cluster index for each data
-    inertias.append(kmeans.inertia_) # The inertia is the sum of the distances of each data point to its cluster centroid
+    inertias.append(kmeans.inertia_) # The inertia is the sum of the squared distances of each data point to its cluster centroid
     score = sklearn.metrics.silhouette_score(data_frame, labels) # The silhouette score indicates how well the data belong to their cluster and how far they are from other clusters
     silhouette_scores.append(score)
 
@@ -51,7 +51,7 @@ matplotlib.pyplot.figure() # New plot
 matplotlib.pyplot.grid(True) # Add grid
 matplotlib.pyplot.title("K-means | reach step | silhouette score")
 matplotlib.pyplot.xlabel("Number of clusters")
-matplotlib.pyplot.ylabel("Silouhette score")
+matplotlib.pyplot.ylabel("Silhouette score")
 matplotlib.pyplot.plot(list(ks), silhouette_scores, marker="x")
 matplotlib.pyplot.show()
 
