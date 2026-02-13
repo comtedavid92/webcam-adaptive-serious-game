@@ -266,7 +266,6 @@ class GameController:
     COLOR_RED   = (231, 76, 60)
     COLOR_GREEN = (46, 204, 113)
     COLOR_BLUE  = (52, 152, 219)
-    COLOR_ORANGE = (230, 126, 34)
 
     def __init__(self, fps, canvas_width, canvas_height, name = None, icon = None):
         pygame.init()
