@@ -34,12 +34,36 @@ Expected results : the movements will naturally separate into 4 distinct cluster
 
 An initial analysis was performed using Excel where each kinematic was plotted against the attempted profiles. After the Excel analysis, these kinematics were selected because they showed a good ability to distinguish the attempted profiles :
 
-- wrist_number_of_velocity_peaks
-- wrist_mean_velocity
-- wrist_sparc
-- wrist_jerk
-- trunk_rom
-- hand_path_ratio
+<table>
+<tr>
+    <td>Kinematic</td>
+    <td>Plot</td>
+</tr>
+<tr>
+    <td>wrist_number_of_velocity_peaks</td>
+    <td><img src="docs/wrist_number_of_velocity_peaks.png" alt="Elbow method plot" width="400"/></td>
+</tr>
+<tr>
+    <td>wrist_mean_velocity</td>
+    <td><img src="docs/wrist_mean_velocity.png" alt="Elbow method plot" width="400"/></td>
+</tr>
+<tr>
+    <td>wrist_sparc</td>
+    <td><img src="docs/wrist_sparc.png" alt="Elbow method plot" width="400"/></td>
+</tr>
+<tr>
+    <td>wrist_jerk</td>
+    <td><img src="docs/wrist_jerk.png" alt="Elbow method plot" width="400"/></td>
+</tr>
+<tr>
+    <td>trunk_rom</td>
+    <td><img src="docs/trunk_rom.png" alt="Elbow method plot" width="400"/></td>
+</tr>
+<tr>
+    <td>hand_path_ratio</td>
+    <td><img src="docs/hand_path_ratio.png" alt="Elbow method plot" width="400"/></td>
+</tr>
+</table>
 
 ### Cluster analysis
 
