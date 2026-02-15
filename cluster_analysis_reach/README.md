@@ -16,7 +16,7 @@ For this experiment, 4 simulated profiles were attempted :
 - Profile 1 (healthy) : natural movements
 - Profile 2 (mild simulated impairment) : natural but slow movements
 - Profile 3 (moderate simulated impairment) : not natural, slow, jerky movements with pauses
-- Profile 4 (severe simulated impairment): not natural, slow, jerky movements with pauses and trunk compensation
+- Profile 4 (severe simulated impairment) : not natural, slow, jerky movements with pauses and trunk compensation
 
 For each profile, 15 "reach-to-target" movements were done.
 
