@@ -360,7 +360,7 @@ def update_step_play(landmarks_as_px):
         # End target
         x = MEMORY_PLAY["end_position"][0]
         y = MEMORY_PLAY["end_position"][1]
-        GAME_CONTROLLER.create_object_circle(MEMORY_PLAY["target_end_id"], x, y, GameController.COLOR_GREEN, MEMORY_PLAY["diff_target_size"])
+        GAME_CONTROLLER.create_object_circle(MEMORY_PLAY["target_end_id"], x, y, GameController.COLOR_GREEN_2, MEMORY_PLAY["diff_target_size"])
 
         # End text
         x = x + MEMORY_PLAY["diff_target_size"] + 10
@@ -403,20 +403,25 @@ def update_step_play(landmarks_as_px):
         # Data check
         if not enough_data: return
 
-        # Trunk not respected
-        if not trunk_respected:
-            MEMORY_PLAY["trunk_failed"] = True
+        # Quit
+        quit = False
+
         # Target expired
-        elif event_expired:
+        if event_expired:
             MEMORY_PLAY["reach_failed"] = True
+            quit = True
+        # Trunk not respected
+        elif event_contact and not trunk_respected:
+            MEMORY_PLAY["trunk_failed"] = True
+            quit = True
         # Aligned
-        elif event_contact:
+        elif event_contact and trunk_respected:
             GAME_CONTROLLER.delete_event(MEMORY_PLAY["event_expired_end_id"])
             DATA_MANAGER.end_iteration()
             MEMORY_PLAY["substep"] = 50
 
         # Clear objects
-        if not trunk_respected or event_expired:
+        if quit:
             GAME_CONTROLLER.delete_object(MEMORY_PLAY["text_instr_id"])
             GAME_CONTROLLER.delete_object(MEMORY_PLAY["text_score_id"])
             GAME_CONTROLLER.delete_object(MEMORY_PLAY["text_dda_param_id"])
@@ -438,7 +443,7 @@ def update_step_play(landmarks_as_px):
         GAME_CONTROLLER.update_object_text(MEMORY_PLAY["text_instr_id"], None, None, None, text, None)
 
         # End target
-        GAME_CONTROLLER.update_object_circle(MEMORY_PLAY["target_end_id"], None, None, GameController.COLOR_GREEN, None)
+        GAME_CONTROLLER.update_object_circle(MEMORY_PLAY["target_end_id"], None, None, GameController.COLOR_GREEN_3, None)
 
         # Dwell event
         landmark_id = PoseLandmark.RIGHT_WRIST if USER_TRAINED_SIDE == DataManager.SIDE_RIGHT else PoseLandmark.LEFT_WRIST
@@ -473,18 +478,24 @@ def update_step_play(landmarks_as_px):
         # Data check
         if not enough_data: return
 
-        # Trunk not respected
-        if not trunk_respected:
-            MEMORY_PLAY["trunk_failed"] = True
+        # Quit
+        quit = False
+
         # Contact lost
-        elif not event_contact:
+        if not event_contact:
             MEMORY_PLAY["dwell_failed"] = True
+            quit = True
+        # Trunk not respected
+        elif event_dwell and not trunk_respected:
+            MEMORY_PLAY["trunk_failed"] = True
+            quit = True
         # Dwelled
-        elif event_dwell:
+        elif event_dwell and trunk_respected:
             MEMORY_PLAY["target_succeeded"] = True
+            quit = True
 
         # Clear objects
-        if not trunk_respected or not event_contact or event_dwell:
+        if quit:
             GAME_CONTROLLER.delete_object(MEMORY_PLAY["text_instr_id"])
             GAME_CONTROLLER.delete_object(MEMORY_PLAY["text_score_id"])
             GAME_CONTROLLER.delete_object(MEMORY_PLAY["text_dda_param_id"])
@@ -604,8 +615,9 @@ def update_trunk_text(text_trunk_id, neck_landmark):
     
     x = neck_landmark[0]
     y = neck_landmark[1] + OBJ_LAND_RADIUS + 10
+    color = GameController.COLOR_WHITE if trunk_respected else GameController.COLOR_RED
     text = "trunk | " + str(trunk_displacement) + "° | max " + str(DIFF_MAX_TRUNK_ANGLE) + "°"
-    GAME_CONTROLLER.update_object_text(text_trunk_id, x, y, None, text, None)
+    GAME_CONTROLLER.update_object_text(text_trunk_id, x, y, color, text, None)
 
     return trunk_respected
 

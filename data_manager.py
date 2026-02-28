@@ -105,6 +105,12 @@ class DataManager:
         self._coordinates_file = os.path.join(folder, date + "-coordinates.csv")
         self._kinematics_file = os.path.join(folder, date + "-kinematics.csv")
 
+        # Set the reference vector, for the computation of the trunk compensation
+        self._reference = [0, -1, 0]
+
+        # Set the minimum data, for the computation of kinematics, as CKATool crashes when there is not enough data
+        self._min_data = 16
+
     def close(self):
         pass
 
@@ -200,9 +206,8 @@ class DataManager:
         it.target_z.append(0)
 
         # Check the number of data
-        # (CKATool crashes when there is less than 16 data)
         number_of_data = len(self._iteration.side)
-        enough_data = number_of_data >= 16
+        enough_data = number_of_data >= self._min_data
 
         return enough_data
 
@@ -229,13 +234,13 @@ class DataManager:
         hip = ckatool.Hip(timestamp, hip_x, hip_y, hip_z, iteration)
 
         # Compute the trunk displacement
-        neck.calculate_trunk_angle(hip, [0, -1, 0])
+        neck.calculate_trunk_angle(hip, self._reference)
         trunk_displacement = abs(neck.trunk_angle[-1] - neck.trunk_angle[0])
 
         return trunk_displacement
 
     def _compute_kinematics(self, neck, hip, shoulder, elbow, wrist, end_effector, target):
-        neck.calculate_trunk_angle(hip, [0, -1, 0])
+        neck.calculate_trunk_angle(hip, self._reference)
 
         shoulder.calculate_speed_profile(elbow, neck, hip)
         shoulder.calculate_acceleration_profile()
@@ -309,9 +314,9 @@ class DataManager:
         it.elbow_percentage_time_to_peak_velocity = elbow.percentage_time_to_peak_velocity[it_nbr]
         it.wrist_percentage_time_to_peak_velocity = wrist.percentage_time_to_peak_velocity[it_nbr]
 
-        it.trunk_rom = numpy.nanmax(neck.trunk_angle) - numpy.nanmin(neck.trunk_angle)
-        it.shoulder_rom = numpy.nanmax(shoulder.angle) - numpy.nanmin(shoulder.angle)
-        it.elbow_rom = numpy.nanmax(elbow.angle) - numpy.nanmin(elbow.angle)
+        it.trunk_rom = numpy.max(neck.trunk_angle) - numpy.min(neck.trunk_angle)
+        it.shoulder_rom = numpy.max(shoulder.angle) - numpy.min(shoulder.angle)
+        it.elbow_rom = numpy.max(elbow.angle) - numpy.min(elbow.angle)
 
         it.trunk_displacement = numpy.absolute(neck.trunk_angle[-1] - neck.trunk_angle[0])
         it.shoulder_displacement = numpy.absolute(shoulder.angle[-1] - shoulder.angle[0])
@@ -423,6 +428,7 @@ class DifficulyAdapter:
         self._margin_score = margin_score
         self._diff_increment = 0.05
         self._window_size = 10
+        self._start_diff = 0.5
 
         self._id = []
         self._diff_target_distance = []
@@ -505,9 +511,9 @@ class DifficulyAdapter:
         return [diff_target_distance, diff_target_size, diff_reach_time]
 
     def _get_rule_based_parameters(self):
-        diff_target_distance = 0.5
-        diff_target_size = 0.5
-        diff_reach_time = 0.5
+        diff_target_distance = self._start_diff
+        diff_target_size = self._start_diff
+        diff_reach_time = self._start_diff
         
         # First call
         if len(self._diff_target_distance) == 0:
@@ -526,8 +532,10 @@ class DifficulyAdapter:
         diff_reach_time = self._diff_reach_time[-1]
 
         window_size = self._window_size
+        
         score = self._get_window_score(window_size)
         #score = self.get_score()
+        
         too_hard = self._is_difficulty_too_high(score)
         too_easy = self._is_difficulty_too_low(score)
         

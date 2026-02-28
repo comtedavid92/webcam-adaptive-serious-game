@@ -261,11 +261,13 @@ class _GameEvent:
 
 class GameController:
 
-    COLOR_WHITE = (255, 255, 255)
-    COLOR_BLACK = (0, 0, 0)
-    COLOR_RED   = (231, 76, 60)
-    COLOR_GREEN = (46, 204, 113)
-    COLOR_BLUE  = (52, 152, 219)
+    COLOR_WHITE      = (255, 255, 255)
+    COLOR_BLACK      = (5, 5, 5)
+    COLOR_RED        = (231, 76, 60)
+    COLOR_GREEN      = (46, 204, 113)
+    COLOR_BLUE       = (52, 152, 219)
+    COLOR_GREEN_2    = (42, 190, 105)
+    COLOR_GREEN_3    = (38, 176, 97)
 
     def __init__(self, fps, canvas_width, canvas_height, name = None, icon = None):
         pygame.init()
