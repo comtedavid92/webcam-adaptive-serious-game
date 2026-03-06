@@ -54,7 +54,7 @@ OBJ_TARGET_RADIUS        = 20   # px
 OBJ_DWELL_TIME           = 1000 # ms
 
 DIFF_ADAPTER             = None
-DIFF_TYPE                = DifficulyAdapter.TYPE_RULE_BASED
+DIFF_TYPE                = DifficulyAdapter.TYPE_DATA_BASED
 DIFF_GOAL_SCORE          = 0.75
 DIFF_MARGIN_SCORE        = 0.05
 
@@ -262,7 +262,7 @@ def update_step_play(landmarks_as_px):
         GAME_CONTROLLER.create_object_text(MEMORY_PLAY["text_score_id"], OBJ_THIRD_TEXT_X, OBJ_THIRD_TEXT_Y, GameController.COLOR_WHITE, text, OBJ_TEXT_SIZE)
 
         # Difficulty paramters text
-        text = "Parameters : target distance {distance:.2f}, target size {size:.2f}, reach time {reach:.2f}"
+        text = "Difficulty : target distance {distance:.2f}, target size {size:.2f}, reach time {reach:.2f}"
         text = text.format(
             distance = MEMORY_PLAY["dda_target_distance"],
             size = MEMORY_PLAY["dda_target_size"],
@@ -462,8 +462,12 @@ def update_step_play(landmarks_as_px):
         enough_data = update_data(MEMORY_PLAY["target_end_id"], MEMORY_PLAY["end_position"], MEMORY_PLAY["norm_position"], MEMORY_PLAY["norm_distance"], landmarks_as_px)
         
         # Trunk text
-        neck_landmark = landmarks_as_px.get(PoseLandmark.MIDDLE_SHOULDER)
-        trunk_respected = update_trunk_text(MEMORY_PLAY["text_trunk_id"], neck_landmark)
+        # neck_landmark = landmarks_as_px.get(PoseLandmark.MIDDLE_SHOULDER)
+        # trunk_respected = update_trunk_text(MEMORY_PLAY["text_trunk_id"], neck_landmark)
+        # The problem is that when the dwell step begins, the player can already use trunk compensation
+        # Therefore, the starting position is not neutral, and this is problematic
+        # For the sake of simplicity, trunk compensation is not updated during the dwell phase and is not checked
+        trunk_respected = True
 
         # End text
         time = GAME_CONTROLLER.get_event_dwell_remaining_time_ms(MEMORY_PLAY["event_dwell_end_id"])
@@ -486,9 +490,9 @@ def update_step_play(landmarks_as_px):
             MEMORY_PLAY["dwell_failed"] = True
             quit = True
         # Trunk not respected
-        elif event_dwell and not trunk_respected:
-            MEMORY_PLAY["trunk_failed"] = True
-            quit = True
+        # elif event_dwell and not trunk_respected:
+        #   MEMORY_PLAY["trunk_failed"] = True
+        #   quit = True
         # Dwelled
         elif event_dwell and trunk_respected:
             MEMORY_PLAY["target_succeeded"] = True
@@ -695,6 +699,8 @@ def get_image():
     result = CAMERA_READER.get_image()
     if result is None: return None
     image = result[0]
+    
+    # print(str(result[1]) + " " + str(result[2]))
     
     return image
 
