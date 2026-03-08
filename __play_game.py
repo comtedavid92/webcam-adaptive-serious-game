@@ -24,8 +24,9 @@ WINDOW_ICON              = "./docs/icon.png"
 
 CAMERA_READER            = None
 CAMERA_TYPE              = CameraReader.CAMERA_EXTERNAL
-CAMERA_WIDTH             = 640 # px
+CAMERA_WIDTH             = 640 # px, common resolutions : 1920×1080, 1280×720, 640×480, 320×240
 CAMERA_HEIGHT            = 480 # px
+CAMERA_FPS               = 60
 
 POSE_ESTIMATOR           = None
 POSE_MODEL_COMPLEXITY    = PoseEstimator.MODEL_COMPLEXITY_FAST
@@ -54,7 +55,7 @@ OBJ_TARGET_RADIUS        = 20   # px
 OBJ_DWELL_TIME           = 1000 # ms
 
 DIFF_ADAPTER             = None
-DIFF_TYPE                = DifficulyAdapter.TYPE_DATA_BASED
+DIFF_TYPE                = DifficulyAdapter.TYPE_RULE_BASED
 DIFF_GOAL_SCORE          = 0.75
 DIFF_MARGIN_SCORE        = 0.05
 
@@ -671,7 +672,7 @@ def set_parameters(parameters):
 def set_utils():
     global GAME_CONTROLLER, CAMERA_READER, POSE_ESTIMATOR, DATA_MANAGER, DATA_FOLDER, DIFF_ADAPTER
     GAME_CONTROLLER = GameController(GAME_FPS, GAME_WIDTH, GAME_HEIGHT, WINDOW_NAME, WINDOW_ICON)
-    CAMERA_READER = CameraReader(CAMERA_TYPE, CAMERA_WIDTH, CAMERA_HEIGHT)
+    CAMERA_READER = CameraReader(CAMERA_TYPE, CAMERA_WIDTH, CAMERA_HEIGHT, CAMERA_FPS)
     POSE_ESTIMATOR = PoseEstimator(POSE_MODEL_COMPLEXITY, POSE_MIN_VISIBILITY)
     DATA_FOLDER = DATA_FOLDER.format(user_id = USER_ID)
     DATA_MANAGER = DataManager(DATA_FOLDER, DATA_DATE)

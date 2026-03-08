@@ -11,7 +11,7 @@ class CameraReader:
         CAMERA_EXTERNAL,
     ]
     
-    def __init__(self, camera_type, camera_width, camera_height):
+    def __init__(self, camera_type, camera_width, camera_height, camera_fps = 30):
         self._camera = None
         self._image = None
 
@@ -19,19 +19,31 @@ class CameraReader:
         if camera_type not in CameraReader._CAMERAS:
             raise RuntimeError("The camera type does not exist")
         
-        # Set the camera
+        # Set the camera type
         if camera_type == CameraReader.CAMERA_INTERNAL:
             self._camera = cv2.VideoCapture(0, cv2.CAP_DSHOW) # Windows
         elif camera_type == CameraReader.CAMERA_EXTERNAL:
             self._camera = cv2.VideoCapture(1, cv2.CAP_DSHOW) # Windows
 
-        # Set the camera dimensions
+        # Set the camera dimensions and FPS
         self._camera.set(cv2.CAP_PROP_FRAME_WIDTH, camera_width)
         self._camera.set(cv2.CAP_PROP_FRAME_HEIGHT, camera_height)
+        self._camera.set(cv2.CAP_PROP_FPS, camera_fps)
 
         # Check the camera opening
         if not self._camera.isOpened():
             raise RuntimeError("The camera cannot be opened")
+        
+        # Print the camera dimensions and FPS
+        camera_width = self._camera.get(cv2.CAP_PROP_FRAME_WIDTH)
+        camera_height = self._camera.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        camera_fps = self._camera.get(cv2.CAP_PROP_FPS)
+        characteristics = "The camera is open : width {camera_width}, height {camera_height}, FPS {camera_fps}".format(
+            camera_width = camera_width,
+            camera_height = camera_height,
+            camera_fps = camera_fps
+        )
+        print(characteristics)
 
     def close(self):
         # Release the camera
