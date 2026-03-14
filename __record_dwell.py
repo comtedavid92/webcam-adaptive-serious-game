@@ -179,7 +179,7 @@ def update_states():
     
     # Start (or end) the iteration
     if not prev_game_recording and GAME_RECORDING:
-        data_manager.start_iteration(DataManager.SIDE_RIGHT)
+        data_manager.start_iteration(DataManager.SIDE_RIGHT, DataManager.TYPE_DWELL, 0)
     elif prev_game_recording and not GAME_RECORDING:
         data_manager.end_iteration()
         NORM_CENTER = None
