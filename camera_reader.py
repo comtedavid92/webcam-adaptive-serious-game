@@ -11,7 +11,7 @@ class CameraReader:
         CAMERA_EXTERNAL,
     ]
     
-    def __init__(self, camera_type, camera_width, camera_height, camera_fps = 30):
+    def __init__(self, camera_type, camera_width, camera_height, camera_fps):
         self._camera = None
         self._image = None
 

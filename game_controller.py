@@ -269,14 +269,13 @@ class GameController:
     COLOR_GREEN_2    = (42, 190, 105)
     COLOR_GREEN_3    = (38, 176, 97)
 
-    def __init__(self, fps, canvas_width, canvas_height, name = None, icon = None):
+    def __init__(self, fps, canvas_width, canvas_height, name, icon):
         pygame.init()
         pygame.font.init()
 
-        if name is not None: pygame.display.set_caption(name)
-        if icon is not None:
-            icon = pygame.image.load(icon)
-            pygame.display.set_icon(icon)
+        pygame.display.set_caption(name)
+        icon = pygame.image.load(icon)
+        pygame.display.set_icon(icon)
 
         self._running = True
         self._clock = pygame.time.Clock()

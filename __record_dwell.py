@@ -1,5 +1,6 @@
 import math
 import time
+import datetime
 from camera_reader import CameraReader
 from pose_estimator import PoseEstimator, PoseLandmark
 from game_controller import GameController
@@ -10,12 +11,16 @@ GAME_RECORDING        = False
 GAME_RUNNING          = True
 GAME_FPS              = 60
 
+WINDOW_NAME           = "webcam-adaptive-serious-game"
+WINDOW_ICON           = "../docs/icon.png"
+
 NORM_CENTER           = None
 NORM_DISTANCE         = None
 
 CAMERA_TYPE           = CameraReader.CAMERA_EXTERNAL
 CAMERA_WIDTH          = 640 #px
 CAMERA_HEIGHT         = 480 #px
+CAMERA_FPS            = 30
 
 POSE_MODEL_COMPLEXITY = PoseEstimator.MODEL_COMPLEXITY_FAST
 POSE_MIN_VISIBILITY   = 0.2
@@ -44,11 +49,14 @@ TEXT_SIZE             = 20 #px
 
 RESULTS_FOLDER        = "./experiments/"
 
+DATA_REF_VECTOR       = [0, -1, 0]
+DATA_DATE             = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 
-camera_reader   = CameraReader(CAMERA_TYPE, CAMERA_WIDTH, CAMERA_HEIGHT)
+
+camera_reader   = CameraReader(CAMERA_TYPE, CAMERA_WIDTH, CAMERA_HEIGHT, CAMERA_FPS)
 pose_estimator  = PoseEstimator(POSE_MODEL_COMPLEXITY, POSE_MIN_VISIBILITY)
-game_controller = GameController(GAME_FPS, CANVAS_WIDTH, CANVAS_HEIGHT)
-data_manager    = DataManager(RESULTS_FOLDER)
+game_controller = GameController(GAME_FPS, CANVAS_WIDTH, CANVAS_HEIGHT, WINDOW_NAME, WINDOW_ICON)
+data_manager    = DataManager(DATA_REF_VECTOR, RESULTS_FOLDER, DATA_DATE)
 
 
 def create_objects():
