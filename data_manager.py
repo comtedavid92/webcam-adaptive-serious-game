@@ -1,11 +1,12 @@
 import numpy
 import ckatool
-import datetime
 import os
 import random
-
+import cloudpickle
+from collections import deque
 from contextualbandits.online import BootstrappedUCB
-from sklearn.linear_model import SGDClassifier, SGDRegressor
+from sklearn.linear_model import SGDClassifier
+from sklearn.preprocessing import StandardScaler
 
 
 class _DataIteration:
@@ -91,8 +92,16 @@ class DataManager:
         SIDE_RIGHT,
         SIDE_LEFT,
     ]
+
+    TYPE_REACH = 0
+    TYPE_DWELL = 1
+
+    _TYPES = [
+        TYPE_REACH,
+        TYPE_DWELL,
+    ]
     
-    def __init__(self, folder, date = None):
+    def __init__(self, ref_vector, folder, date):
         self._iteration_number = 0
         self._iteration_side = 0
         self._iteration_type = 0
@@ -100,26 +109,28 @@ class DataManager:
         self._iteration = None
         self._last_iterations = {}
 
-        # Create the folder
-        os.makedirs(folder, exist_ok=True) # Avoid already existing error
-
-        # Set the file paths
-        if date is None: date = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-        self._coordinates_file = os.path.join(folder, date + "-coordinates.csv")
-        self._kinematics_file = os.path.join(folder, date + "-kinematics.csv")
-
         # Set the reference vector, for the computation of the trunk compensation
-        self._reference = [0, -1, 0]
+        self._reference = ref_vector
 
         # Set the minimum data, for the computation of kinematics, as CKATool crashes when there is not enough data
         self._min_data = 16
 
+        # Create the folder
+        os.makedirs(folder, exist_ok=True) # Avoid already existing error
+
+        # Set the file paths
+        self._coordinates_file = os.path.join(folder, date + "-coordinates.csv")
+        self._kinematics_file = os.path.join(folder, date + "-kinematics.csv")
+
     def close(self):
         pass
 
-    def start_iteration(self, side, type = 0, id = 0):
+    def start_iteration(self, side, type, id):
         # Check the side
         if side not in DataManager._SIDES: raise RuntimeError("The side does not exist")
+
+        # Check the type
+        if type not in DataManager._TYPES: raise RuntimeError("The type does not exist")
 
         # Check the iteration
         it = self._iteration
@@ -167,7 +178,10 @@ class DataManager:
         self._last_iterations[self._iteration_type] = self._iteration # Save the iteration
         self._iteration = None # Unset the iteration
 
-    def get_last_iteration(self, type = 0):
+    def get_last_iteration(self, type):
+        # Check the type
+        if type not in DataManager._TYPES: raise RuntimeError("The type does not exist")
+        
         last_iteration = self._last_iterations.get(type)
         return last_iteration
 
@@ -422,353 +436,338 @@ class DifficulyAdapter:
         TYPE_DATA_BASED,
     ]
 
-    def __init__(self, type, goal_score, margin_score, folder, date = None):
+    _PARAMETER_TYPE_NONE = -1
+    _PARAMETER_TYPE_TARGET_DISTANCE = 0
+    _PARAMETER_TYPE_TARGET_SIZE = 1
+    _PARAMETER_TYPE_REACH_TIME = 2
+
+    def __init__(self, type, goal_score, margin_score, start_diff, diff_increment, window_size, folder, date):
         # Check the type
         if type not in DifficulyAdapter._TYPES: raise RuntimeError("The type does not exist")
 
         self._type = type
         self._goal_score = goal_score
         self._margin_score = margin_score
-        self._diff_increment = 0.05
-        self._window_size = 10
-        self._start_diff = 0.5
-
-        self._id = []
-        self._diff_target_distance = []
-        self._diff_target_size = []
-        self._diff_reach_time = []
-        self._reach_iteration = []
-        self._dwell_iteration = []
-        self._target_succeeded = []
-        self._trunk_failed = []
-        self._reach_failed = []
-        self._dwell_failed = []
-
-        # Data-based DDA
-        self._last_score = None
-        self._last_parameter = None
-        self._last_context = None
-        self._contextual_bandits = None
-        
-        if type == DifficulyAdapter.TYPE_DATA_BASED:
-            model = SGDClassifier(
-                loss = "log_loss",        # Binary prediction
-                learning_rate = "optimal" # Adaptative learning rate
-            )
-
-            self._contextual_bandits = BootstrappedUCB(
-                base_algorithm = model,
-                nchoices = 3,        # Number of arms
-                nsamples = 10,       # Number of boostrap models per arms
-                batch_train = True   # How to update (here, after each new data)
-            )
-
-            # The initial fit seems to be necessary to create the model properly
-            # The three arms are pulled once, without any reward, in order to avoid any bias
-            # https://nbviewer.org/github/david-cortes/contextualbandits/blob/master/example/online_contextual_bandits.ipynb
-
-            context_size = 11
-            first_batch = numpy.zeros((3, context_size)) # Matrix of 3x11 values
-            action_chosen = numpy.array([0, 1, 2])       # Vector of three values
-            rewards_received = numpy.array([0, 0, 0])    # Vector of three values
-            self._contextual_bandits.fit(first_batch, action_chosen, rewards_received)
+        self._start_diff = start_diff
+        self._diff_increment = diff_increment
+        self._window_size = window_size
+        self._folder = folder
+        self._date = date
 
         # Create the folder
         os.makedirs(folder, exist_ok=True) # Avoid already existing error
 
         # Set the file path
-        if date is None: date = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         self._scores_file = os.path.join(folder, date + "-scores.csv")
 
+        # Generic DDA
+        self._id = None
+
+        self._n_targets = 0
+        self._n_targets_succeeded = 0
+
+        self._last_adjusted_parameter = None
+        self._last_diff_target_distance = None
+        self._last_diff_target_size = None
+        self._last_diff_reach_time = None
+
+        self._last_reach_iteration = None
+        self._last_dwell_iteration = None
+        
+        self._last_target_succeeded = deque(maxlen=window_size)
+        self._last_trunk_failed = deque(maxlen=window_size)
+        self._last_reach_failed = deque(maxlen=window_size)
+        self._last_dwell_failed = deque(maxlen=window_size)
+
+        # Data-based DDA
+        self._contextual_bandits = None
+        self._data_scaler = None
+        self._save_every_n_targets = None
+        self._contextual_bandits_file = None
+        
+        self._last_score = None
+        self._last_context = None
+        self._last_context_scaled = None
+        
+        # Init DDA
+        if type == DifficulyAdapter.TYPE_RANDOM_BASED:
+            self._init_random_based()
+        elif type == DifficulyAdapter.TYPE_RULE_BASED:
+            self._init_rule_based()
+        elif type == DifficulyAdapter.TYPE_DATA_BASED:
+            self._init_data_based()
+
+    def _init_random_based(self):
+        pass
+
+    def _init_rule_based(self):
+        pass
+
+    def _init_data_based(self):
+        model = SGDClassifier(
+            loss = "log_loss",        # Binary prediction
+            learning_rate = "optimal" # Adaptative learning rate
+        )
+
+        self._contextual_bandits = BootstrappedUCB(
+            base_algorithm = model,
+            nchoices = 3,      # Number of arms
+            nsamples = 10,     # Number of boostrap models per arms
+            batch_train = True # How to update (after each new data)
+        )
+
+        # The initial fit seems to be necessary to create the model properly
+        # The three arms are pulled once, without any reward, in order to avoid any bias
+        # https://nbviewer.org/github/david-cortes/contextualbandits/blob/master/example/online_contextual_bandits.ipynb
+
+        context_size = 11
+        first_batch = numpy.zeros((3, context_size)) # Matrix of 3x11 values
+        action_chosen = numpy.array([0, 1, 2])       # Vector of three values
+        rewards_received = numpy.array([0, 0, 0])    # Vector of three values
+        self._contextual_bandits.fit(first_batch, action_chosen, rewards_received)
+
+        self._data_scaler = StandardScaler()
+        self._data_scaler.partial_fit(first_batch)
+
+        self._save_every_n_targets = 10
+        self._contextual_bandits_file = os.path.join(self._folder, self._date + "-contextual-bandits.pkl")
+
     def get_new_parameters(self, id):
-        parameters = [0, 0, 0]
-        self._id.append(id)
+        self._id = id
 
-        if self._type == DifficulyAdapter.TYPE_RANDOM_BASED:
-            parameters = self._get_random_based_parameters()
-        elif self._type == DifficulyAdapter.TYPE_RULE_BASED:
-            parameters = self._get_rule_based_parameters()
-        elif self._type == DifficulyAdapter.TYPE_DATA_BASED:
-            parameters = self._get_data_based_parameters()
-
-        return parameters
-        
-    def set_previous_kinematics_and_scores(self, reach_iteration, dwell_iteration, target_succeeded, trunk_failed, reach_failed, dwell_failed):
-        self._reach_iteration.append(reach_iteration)
-        self._dwell_iteration.append(dwell_iteration)
-
-        self._target_succeeded.append(target_succeeded)
-        self._trunk_failed.append(trunk_failed)
-        self._reach_failed.append(reach_failed)
-        self._dwell_failed.append(dwell_failed)
-
-        # Write header
-        if len(self._id) == 1: self._write_header()
-
-        # Write data
-        self._write_data()
-
-    def get_score(self):
-        n_targets = len(self._target_succeeded)
-        n_successes = self._target_succeeded.count(True)
-        score = n_successes / n_targets if n_targets > 0 else 0
-        return score
-
-    def get_str_score(self):
-        n_targets = len(self._target_succeeded)
-        n_successes = self._target_succeeded.count(True)
-        str_score = str(n_successes) + "/" + str(n_targets)
-        return str_score
-    
-    def _get_window_score(self):
-        window_size = self._window_size
-        target_succeeded = self._target_succeeded[-window_size:]
-        n_targets = len(target_succeeded)
-        n_successes = target_succeeded.count(True)
-        score = n_successes / n_targets if n_targets > 0 else 0
-        return score
-
-    def _get_random_based_parameters(self):
-        diff_target_distance = random.random()
-        diff_target_size = random.random()
-        diff_reach_time = random.random()
-        
-        self._diff_target_distance.append(diff_target_distance)
-        self._diff_target_size.append(diff_target_size)
-        self._diff_reach_time.append(diff_reach_time)
-
-        return [diff_target_distance, diff_target_size, diff_reach_time]
-
-    def _get_rule_based_parameters(self):
         # Get the start parameters
         diff_target_distance = self._start_diff
         diff_target_size = self._start_diff
         diff_reach_time = self._start_diff
         
         # It is the first call
-        # Return the start parameters
-        if len(self._diff_target_distance) == 0:
-            self._diff_target_distance.append(diff_target_distance)
-            self._diff_target_size.append(diff_target_size)
-            self._diff_reach_time.append(diff_reach_time)
+        if self._n_targets == 0:
+            self._last_adjusted_parameter = DifficulyAdapter._PARAMETER_TYPE_NONE
+            self._last_diff_target_distance = diff_target_distance
+            self._last_diff_target_size = diff_target_size
+            self._last_diff_reach_time = diff_reach_time
 
             return [
-                self._diff_target_distance[-1],
-                self._diff_target_size[-1],
-                self._diff_reach_time[-1],
+                self._last_diff_target_distance,
+                self._last_diff_target_size,
+                self._last_diff_reach_time,
             ]
-
-        # Get the last parameters
-        diff_target_distance = self._diff_target_distance[-1]
-        diff_target_size = self._diff_target_size[-1]
-        diff_reach_time = self._diff_reach_time[-1]
 
         # Compute the difficulty status (too hard, too easy, OK)
         score = self._get_window_score()
         too_hard = self._is_difficulty_too_high(score)
         too_easy = self._is_difficulty_too_low(score)
-        
+
+        # Get the last parameters
+        diff_target_distance = self._last_diff_target_distance
+        diff_target_size = self._last_diff_target_size
+        diff_reach_time = self._last_diff_reach_time
+
+        # Get the parameter to adjust
+        parameter = DifficulyAdapter._PARAMETER_TYPE_NONE
+        if self._type == DifficulyAdapter.TYPE_RANDOM_BASED:
+            parameter = self._get_random_based_parameter(score, too_hard, too_easy, diff_target_distance, diff_target_size, diff_reach_time)
+        elif self._type == DifficulyAdapter.TYPE_RULE_BASED:
+            parameter = self._get_rule_based_parameter(score, too_hard, too_easy, diff_target_distance, diff_target_size, diff_reach_time)
+        elif self._type == DifficulyAdapter.TYPE_DATA_BASED:
+            parameter = self._get_data_based_parameter(score, too_hard, too_easy, diff_target_distance, diff_target_size, diff_reach_time)
+
         # The difficulty is OK
-        # Return the last parameters
         if not too_hard and not too_easy:
-            self._diff_target_distance.append(diff_target_distance)
-            self._diff_target_size.append(diff_target_size)
-            self._diff_reach_time.append(diff_reach_time)
+            if parameter != DifficulyAdapter._PARAMETER_TYPE_NONE: raise RuntimeError("The parameter to adjust must be none")
+            
+            self._last_adjusted_parameter = parameter
+            self._last_diff_target_distance = diff_target_distance
+            self._last_diff_target_size = diff_target_size
+            self._last_diff_reach_time = diff_reach_time
 
             return [
-                self._diff_target_distance[-1],
-                self._diff_target_size[-1],
-                self._diff_reach_time[-1],
+                self._last_diff_target_distance,
+                self._last_diff_target_size,
+                self._last_diff_reach_time,
             ]
 
-        # Compute the performance metrics (that are not kinematics)
-        # Construct an errors dict for later use
-        trunk_errors = self._trunk_failed[-self._window_size:].count(True)
-        reach_errors = self._reach_failed[-self._window_size:].count(True)
-        dwell_errors = self._dwell_failed[-self._window_size:].count(True)
+        # The difficulty is NOK
+        diff_increment = -self._diff_increment if too_hard else self._diff_increment
 
-        key_trunk = 0
-        key_reach = 1
-        key_dwell = 2
+        if parameter == DifficulyAdapter._PARAMETER_TYPE_TARGET_DISTANCE:
+            diff_target_distance += diff_increment
+            diff_target_distance = min(diff_target_distance, 1)
+            diff_target_distance = max(diff_target_distance, 0)
+        elif parameter == DifficulyAdapter._PARAMETER_TYPE_TARGET_SIZE:
+            diff_target_size += diff_increment
+            diff_target_size = min(diff_target_size, 1)
+            diff_target_size = max(diff_target_size, 0)
+        elif parameter == DifficulyAdapter._PARAMETER_TYPE_REACH_TIME:
+            diff_reach_time += diff_increment
+            diff_reach_time = min(diff_reach_time, 1)
+            diff_reach_time = max(diff_reach_time, 0)
+
+        self._last_adjusted_parameter = parameter
+        self._last_diff_target_distance = diff_target_distance
+        self._last_diff_target_size = diff_target_size
+        self._last_diff_reach_time = diff_reach_time
+
+        return [
+            self._last_diff_target_distance,
+            self._last_diff_target_size,
+            self._last_diff_reach_time,
+        ]
+    
+    def set_previous_kinematics_and_scores(self, reach_iteration, dwell_iteration, target_succeeded, trunk_failed, reach_failed, dwell_failed):
+        self._last_reach_iteration = reach_iteration
+        self._last_dwell_iteration = dwell_iteration
+
+        self._last_target_succeeded.append(target_succeeded)
+        self._last_trunk_failed.append(trunk_failed)
+        self._last_reach_failed.append(reach_failed)
+        self._last_dwell_failed.append(dwell_failed)
+        
+        self._n_targets += 1
+        if target_succeeded: self._n_targets_succeeded += 1
+
+        # Write header
+        if self._n_targets == 1: self._write_header()
+
+        # Write data
+        self._write_data()
+    
+    def _get_random_based_parameter(self, score, too_hard, too_easy, diff_target_distance, diff_target_size, diff_reach_time):
+        # The difficulty is OK
+        if not too_hard and not too_easy:
+            return DifficulyAdapter._PARAMETER_TYPE_NONE
+
+        # The difficulty is NOK
+        parameters = [
+            DifficulyAdapter._PARAMETER_TYPE_TARGET_DISTANCE,
+            DifficulyAdapter._PARAMETER_TYPE_TARGET_SIZE,
+            DifficulyAdapter._PARAMETER_TYPE_REACH_TIME,
+        ]
+        parameter = random.choice(parameters)
+
+        return parameter
+
+    def _get_rule_based_parameter(self, score, too_hard, too_easy, diff_target_distance, diff_target_size, diff_reach_time):
+        # The difficulty is OK
+        if not too_hard and not too_easy:
+            return DifficulyAdapter._PARAMETER_TYPE_NONE
+
+        # The difficulty is NOK
+        trunk_errors = self._last_trunk_failed.count(True)
+        dwell_errors = self._last_dwell_failed.count(True)
+        reach_errors = self._last_reach_failed.count(True)
+
+        key_distance = DifficulyAdapter._PARAMETER_TYPE_TARGET_DISTANCE
+        key_size = DifficulyAdapter._PARAMETER_TYPE_TARGET_SIZE
+        key_time = DifficulyAdapter._PARAMETER_TYPE_REACH_TIME
 
         errors = {
-            key_trunk : trunk_errors,
-            key_reach : reach_errors,
-            key_dwell : dwell_errors,
+            key_distance : trunk_errors,
+            key_size : dwell_errors,
+            key_time : reach_errors,
         }
+
+        parameter = DifficulyAdapter._PARAMETER_TYPE_NONE
 
         # The difficulty is too hard
         # One of the parameter need to be decreased
         # Filter the adjustable parameters (those that are not already at the minimum)
-        # Decrease the parameter attached to the worst performance metric
+        # Choose the parameter attached to the worst performance metric
         # Choose randomly in case of a tie
         if too_hard:
-            if diff_target_distance <= 0: del errors[key_trunk]
-            if diff_reach_time <= 0: del errors[key_reach]
-            if diff_target_size <= 0: del errors[key_dwell]
+            if diff_target_distance <= 0: del errors[key_distance]
+            if diff_target_size <= 0: del errors[key_size]
+            if diff_reach_time <= 0: del errors[key_time]
             
             if len(errors) >= 1:
-                curr_key = self._get_largest(errors)
-                curr_key = self._randomize_competitors(curr_key, errors)
-                if curr_key == key_trunk:
-                    diff_target_distance -= self._diff_increment
-                elif curr_key == key_reach:
-                    diff_reach_time -= self._diff_increment
-                elif curr_key == key_dwell:
-                    diff_target_size -= self._diff_increment
+                parameter = self._get_largest(errors)
+                parameter = self._randomize_competitors(parameter, errors)
         
         # The difficulty is too easy
         # One of the parameter need to be increased
         # Filter the adjustable parameters (those that are not already at the maximum)
-        # Increase the parameter attached to the best performance metric
+        # Choose the parameter attached to the best performance metric
         # Choose randomly in case of a tie
         elif too_easy:
-            if diff_target_distance >= 1: del errors[key_trunk]
-            if diff_reach_time >= 1: del errors[key_reach]
-            if diff_target_size >= 1: del errors[key_dwell]
+            if diff_target_distance >= 1: del errors[key_distance]
+            if diff_target_size >= 1: del errors[key_size]
+            if diff_reach_time >= 1: del errors[key_time]
 
             if len(errors) >= 1:
-                curr_key = self._get_smallest(errors)
-                curr_key = self._randomize_competitors(curr_key, errors)
-                if curr_key == key_trunk:
-                    diff_target_distance += self._diff_increment
-                elif curr_key == key_reach:
-                    diff_reach_time += self._diff_increment
-                elif curr_key == key_dwell:
-                    diff_target_size += self._diff_increment
+                parameter = self._get_smallest(errors)
+                parameter = self._randomize_competitors(parameter, errors)
 
-        # Limit the parameters between 0 and 1
-        diff_target_distance = min(diff_target_distance, 1)
-        diff_target_size = min(diff_target_size, 1)
-        diff_reach_time = min(diff_reach_time, 1)
+        return parameter
 
-        diff_target_distance = max(diff_target_distance, 0)
-        diff_target_size = max(diff_target_size, 0)
-        diff_reach_time = max(diff_reach_time, 0)
-
-        # Return the new parameters
-        self._diff_target_distance.append(diff_target_distance)
-        self._diff_target_size.append(diff_target_size)
-        self._diff_reach_time.append(diff_reach_time)
-
-        return [
-            self._diff_target_distance[-1],
-            self._diff_target_size[-1],
-            self._diff_reach_time[-1],
-        ]
-
-    def _get_data_based_parameters(self):
-        # Get the start parameters
-        diff_target_distance = self._start_diff
-        diff_target_size = self._start_diff
-        diff_reach_time = self._start_diff
-        
-        # It is the first call
-        # Return the start parameters
-        if len(self._diff_target_distance) == 0:
-            self._diff_target_distance.append(diff_target_distance)
-            self._diff_target_size.append(diff_target_size)
-            self._diff_reach_time.append(diff_reach_time)
-
-            return [
-                self._diff_target_distance[-1],
-                self._diff_target_size[-1],
-                self._diff_reach_time[-1],
-            ]
-        
-        # The contextual bandits ran
-        # Update it with the reward
-        # Partial fit is used because the contextual bandits is updated after each new data (online learning)
-        if self._last_parameter is not None:
+    def _get_data_based_parameter(self, score, too_hard, too_easy, diff_target_distance, diff_target_size, diff_reach_time):
+        # The Contextual Bandits ran
+        # Update the data scaler and the Contextual Bandits
+        if self._last_adjusted_parameter != DifficulyAdapter._PARAMETER_TYPE_NONE:
+            self._data_scaler.partial_fit(self._last_context) # Keep the scaler updated (as the data arrives one by one)
             reward = abs(self._last_score - self._goal_score) - abs(self._get_window_score() - self._goal_score)
-            reward = 1 if reward > 0 else 0
-            self._contextual_bandits.partial_fit(self._last_context, numpy.array([self._last_parameter]), numpy.array([reward]))
+            reward = 1 if reward > 0 else 0 # The Contextual Bandits library supports only binary rewards
+            self._contextual_bandits.partial_fit(self._last_context_scaled, numpy.array([self._last_adjusted_parameter]), numpy.array([reward]))
 
-        # Reset the contextual bandits variables
-        self._last_score = None
-        self._last_parameter = None
-        self._last_context = None
+        # Save the data scaler and the Contextual Bandits
+        # Cloudpickle is used https://github.com/david-cortes/contextualbandits
+        if self._n_targets % self._save_every_n_targets == 0:
+            cloudpickle.dump({
+                "contextual_bandits" : self._contextual_bandits,
+                "data_scaler" : self._data_scaler
+            }, open(self._contextual_bandits_file, "wb"))
 
-        # Get the last parameters
-        diff_target_distance = self._diff_target_distance[-1]
-        diff_target_size = self._diff_target_size[-1]
-        diff_reach_time = self._diff_reach_time[-1]
-
-        # Compute the difficulty status (too hard, too easy, OK)
-        score = self._get_window_score()
-        too_hard = self._is_difficulty_too_high(score)
-        too_easy = self._is_difficulty_too_low(score)
-        
         # The difficulty is OK
-        # Return the last parameters
         if not too_hard and not too_easy:
-            self._diff_target_distance.append(diff_target_distance)
-            self._diff_target_size.append(diff_target_size)
-            self._diff_reach_time.append(diff_reach_time)
+            return DifficulyAdapter._PARAMETER_TYPE_NONE
 
-            return [
-                self._diff_target_distance[-1],
-                self._diff_target_size[-1],
-                self._diff_reach_time[-1],
-            ]
-
-        # Get the context as :
-        #   diff_target_distance, diff_target_size, diff_reach_time
-        #   reach_wrist_number_of_velocity_peaks, reach_wrist_mean_velocity, reach_wrist_sparc, reach_wrist_jerk, reach_trunk_rom, reach_hand_path_ratio
-        #   has_dwell, dwell_wrist_mean_velocity
-        # !!!!!!!! Important, if the context changes, the context_size variable in the constructor has to be adapted !!!!!!!!
-
+        # Get the context
         self._last_score = self._get_window_score()
         self._last_context = numpy.array([
-            self._diff_target_distance[-1],
-            self._diff_target_size[-1],
-            self._diff_reach_time[-1],
-            self._reach_iteration[-1].wrist_number_of_velocity_peaks,
-            self._reach_iteration[-1].wrist_mean_velocity,
-            self._reach_iteration[-1].wrist_sparc,
-            self._reach_iteration[-1].wrist_jerk,
-            self._reach_iteration[-1].trunk_rom,
-            self._reach_iteration[-1].hand_path_ratio,
-            0 if self._dwell_iteration[-1] is None else 1,
-            0 if self._dwell_iteration[-1] is None else self._dwell_iteration[-1].wrist_mean_velocity,
+            self._last_diff_target_distance,
+            self._last_diff_target_size,
+            self._last_diff_reach_time,
+            self._last_reach_iteration.wrist_number_of_velocity_peaks,
+            self._last_reach_iteration.wrist_mean_velocity,
+            self._last_reach_iteration.wrist_sparc,
+            self._last_reach_iteration.wrist_jerk,
+            self._last_reach_iteration.trunk_rom,
+            self._last_reach_iteration.hand_path_ratio,
+            0 if self._last_dwell_iteration is None else 1,
+            0 if self._last_dwell_iteration is None else self._last_dwell_iteration.wrist_mean_velocity,
         ])
 
         # Reshape the context
         # Convert a vector (N,1) to (1,N)
-        self._last_context = self._last_context.reshape(1, -1)
+        self._last_context = self._last_context.reshape(1, -1) # Auto : -1
 
-        # Choose the parameter to adjust
-        self._last_parameter = self._contextual_bandits.predict(self._last_context)[0]
+        # Normalize the context
+        # The context is normalized online, the scaling parameters (mean and standard deviation per feature) change over time (as the data arrives one by one)
+        # So, if a pretrained Contextual Bandits model is used, the data scaler of that model must be used
+        self._last_context_scaled = self._data_scaler.transform(self._last_context)
 
-        # Adjust the chosen parameter
-        if too_hard:
-            if self._last_parameter == 0: diff_target_distance -= self._diff_increment
-            elif self._last_parameter == 1: diff_reach_time -= self._diff_increment
-            elif self._last_parameter == 2: diff_target_size -= self._diff_increment
-        elif too_easy:
-            if self._last_parameter == 0: diff_target_distance += self._diff_increment
-            elif self._last_parameter == 1: diff_reach_time += self._diff_increment
-            elif self._last_parameter == 2: diff_target_size += self._diff_increment
+        # Choose the parameter to adjust (pull the arm)
+        parameter = self._contextual_bandits.predict(self._last_context_scaled)[0]
 
-        # Limit the parameters between 0 and 1
-        diff_target_distance = min(diff_target_distance, 1)
-        diff_target_size = min(diff_target_size, 1)
-        diff_reach_time = min(diff_reach_time, 1)
+        return parameter
 
-        diff_target_distance = max(diff_target_distance, 0)
-        diff_target_size = max(diff_target_size, 0)
-        diff_reach_time = max(diff_reach_time, 0)
+    def get_score(self):
+        n_targets = self._n_targets
+        n_successes = self._n_targets_succeeded
+        score = n_successes / n_targets if n_targets > 0 else 0
+        return score
 
-        # Return the new parameters
-        self._diff_target_distance.append(diff_target_distance)
-        self._diff_target_size.append(diff_target_size)
-        self._diff_reach_time.append(diff_reach_time)
-
-        return [
-            self._diff_target_distance[-1],
-            self._diff_target_size[-1],
-            self._diff_reach_time[-1],
-        ]
+    def get_str_score(self):
+        n_targets = self._n_targets
+        n_successes = self._n_targets_succeeded
+        str_score = str(n_successes) + "/" + str(n_targets)
+        return str_score
+    
+    def _get_window_score(self):
+        target_succeeded = self._last_target_succeeded
+        n_targets = len(target_succeeded)
+        n_successes = target_succeeded.count(True)
+        score = n_successes / n_targets if n_targets > 0 else 0
+        return score
 
     def _is_difficulty_too_high(self, score):
         result = False
@@ -815,11 +814,9 @@ class DifficulyAdapter:
         header = [
             "id", "start_timestamp", "end_timestamp",
             "dda_type", "goal_score", "margin_score", "start_diff", "diff_increment", "window_size",
-            "diff_target_distance", "diff_target_size", "diff_reach_time",
-            "diff_target_distance_updated", "diff_target_size_updated", "diff_reach_time_updated",
+            "adjusted_parameter", "diff_target_distance", "diff_target_size", "diff_reach_time",
             "target_succeeded", "trunk_failed", "reach_failed", "dwell_failed",
-            "score", "n_trunk_failed", "n_reach_failed", "n_dwell_failed",
-            "window_score", "window_n_trunk_failed", "window_n_reach_failed", "window_n_dwell_failed",
+            "score", "window_score", "window_trunk_failed", "window_reach_failed", "window_dwell_failed",
             "reach_wrist_number_of_velocity_peaks", "reach_wrist_mean_velocity", "reach_wrist_sparc", "reach_wrist_jerk", "reach_trunk_rom", "reach_hand_path_ratio",
             "has_dwell", "dwell_wrist_mean_velocity",
         ]
@@ -830,42 +827,30 @@ class DifficulyAdapter:
 
     def _write_data(self):
         # Get the start timestamp
-        start_timestamp = self._reach_iteration[-1].timestamp[0]
+        start_timestamp = self._last_reach_iteration.timestamp[0]
 
         # Get the end timestamp
-        end_timestamp = self._reach_iteration[-1].timestamp[-1] if self._dwell_iteration[-1] is None else self._dwell_iteration[-1].timestamp[-1]
-
-        # Get the updated difficulty parameters
-        diff_target_distance_updated = 0
-        diff_target_size_updated = 0
-        diff_reach_time_updated = 0
-
-        if len(self._diff_target_distance) >= 2:
-            diff_target_distance_updated = 1 if self._diff_target_distance[-1] != self._diff_target_distance[-2] else 0
-            diff_target_size_updated = 1 if self._diff_target_size[-1] != self._diff_target_size[-2] else 0
-            diff_reach_time_updated = 1 if self._diff_reach_time[-1] != self._diff_reach_time[-2] else 0
+        end_timestamp = self._last_reach_iteration.timestamp[-1] if self._last_dwell_iteration is None else self._last_dwell_iteration.timestamp[-1]
 
         # Get the reach kinematics
-        reach_wrist_number_of_velocity_peaks = self._reach_iteration[-1].wrist_number_of_velocity_peaks
-        reach_wrist_mean_velocity = self._reach_iteration[-1].wrist_mean_velocity
-        reach_wrist_sparc = self._reach_iteration[-1].wrist_sparc
-        reach_wrist_jerk = self._reach_iteration[-1].wrist_jerk
-        reach_trunk_rom = self._reach_iteration[-1].trunk_rom
-        reach_hand_path_ratio = self._reach_iteration[-1].hand_path_ratio
+        reach_wrist_number_of_velocity_peaks = self._last_reach_iteration.wrist_number_of_velocity_peaks
+        reach_wrist_mean_velocity = self._last_reach_iteration.wrist_mean_velocity
+        reach_wrist_sparc = self._last_reach_iteration.wrist_sparc
+        reach_wrist_jerk = self._last_reach_iteration.wrist_jerk
+        reach_trunk_rom = self._last_reach_iteration.trunk_rom
+        reach_hand_path_ratio = self._last_reach_iteration.hand_path_ratio
         
         # Get the dwell kinematic
-        has_dwell = 0 if self._dwell_iteration[-1] is None else 1
-        dwell_wrist_mean_velocity = 0 if self._dwell_iteration[-1] is None else self._dwell_iteration[-1].wrist_mean_velocity
+        has_dwell = 0 if self._last_dwell_iteration is None else 1
+        dwell_wrist_mean_velocity = 0 if self._last_dwell_iteration is None else self._last_dwell_iteration.wrist_mean_velocity
 
         # Get the line
         line = [
-            self._id[-1], start_timestamp, end_timestamp,
+            self._id, start_timestamp, end_timestamp,
             self._type, self._goal_score, self._margin_score, self._start_diff, self._diff_increment, self._window_size,
-            self._diff_target_distance[-1], self._diff_target_size[-1], self._diff_reach_time[-1],
-            diff_target_distance_updated, diff_target_size_updated, diff_reach_time_updated,
-            int(self._target_succeeded[-1]), int(self._trunk_failed[-1]), int(self._reach_failed[-1]), int(self._dwell_failed[-1]),
-            self.get_score(), self._trunk_failed.count(True), self._reach_failed.count(True), self._dwell_failed.count(True),
-            self._get_window_score(), self._trunk_failed[-self._window_size:].count(True), self._reach_failed[-self._window_size:].count(True), self._dwell_failed[-self._window_size:].count(True),
+            self._last_adjusted_parameter, self._last_diff_target_distance, self._last_diff_target_size, self._last_diff_reach_time,
+            int(self._last_target_succeeded[-1]), int(self._last_trunk_failed[-1]), int(self._last_reach_failed[-1]), int(self._last_dwell_failed[-1]),
+            self.get_score(), self._get_window_score(), self._last_trunk_failed.count(True), self._last_reach_failed.count(True), self._last_dwell_failed.count(True),
             reach_wrist_number_of_velocity_peaks, reach_wrist_mean_velocity, reach_wrist_sparc, reach_wrist_jerk, reach_trunk_rom, reach_hand_path_ratio,
             has_dwell, dwell_wrist_mean_velocity,
         ]

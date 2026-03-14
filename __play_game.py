@@ -10,71 +10,72 @@ from data_manager import DataManager, DifficulyAdapter
 
 # ===================================================================================================================================================
 
-USER_ID                  = None
-USER_TRAINED_SIDE        = None
+USER_ID                  = None # Id of the user as a string (ex : id-01-p1-data-based)
+USER_TRAINED_SIDE        = None # Trained side as a string (right or left)
 
-GAME_CONTROLLER          = None
-GAME_RUNNING             = True
-GAME_FPS                 = 60
-GAME_WIDTH               = 1600 # px
-GAME_HEIGHT              = 1200 # px
+GAME_CONTROLLER          = None # Object that contains the game controller
+GAME_RUNNING             = True # Flag that tells if the game is still running (false : when the user close the window)
+GAME_FPS                 = 60   # Max frame rate of the game
+GAME_WIDTH               = 1600 # px, Game width (the ratio should be the same as the camera)
+GAME_HEIGHT              = 1200 # px, Game height
 
-WINDOW_NAME              = "webcam-adaptive-serious-game"
-WINDOW_ICON              = "./docs/icon.png"
+WINDOW_NAME              = "webcam-adaptive-serious-game" # Name of the game window
+WINDOW_ICON              = "./docs/icon.png"              # Icon to use (top left)
 
-CAMERA_READER            = None
-CAMERA_TYPE              = CameraReader.CAMERA_EXTERNAL
-CAMERA_WIDTH             = 640 # px, common resolutions : 1920×1080, 1280×720, 640×480, 320×240
-CAMERA_HEIGHT            = 480 # px
-CAMERA_FPS               = 60
+CAMERA_READER            = None # Object that contains the camera reader
+CAMERA_TYPE              = CameraReader.CAMERA_EXTERNAL # Camera to use
+CAMERA_WIDTH             = 640 # px, Camera width, common resolutions are : 1920×1080, 1280×720, 640×480, 320×240
+CAMERA_HEIGHT            = 480 # px, Camera height
+CAMERA_FPS               = 60  # Desired frame rate of the camera (does not work)
 
-POSE_ESTIMATOR           = None
-POSE_MODEL_COMPLEXITY    = PoseEstimator.MODEL_COMPLEXITY_FAST
-POSE_MIN_VISIBILITY      = 0.2
-POSE_EXCLUDED_LANDMARKS  = [PoseLandmark.RIGHT_HAND, PoseLandmark.LEFT_HAND]
-POSE_DUMMY_VARIABLE      = PoseLandmark.exclude_landmarks(POSE_EXCLUDED_LANDMARKS)
+POSE_ESTIMATOR           = None # Object that contains the pose estimator
+POSE_MODEL_COMPLEXITY    = PoseEstimator.MODEL_COMPLEXITY_FAST # Model to use
+POSE_MIN_VISIBILITY      = 0.2 # Min detection confidence (landmarks with lower confidence are ignored)
+POSE_EXCLUDED_LANDMARKS  = [PoseLandmark.RIGHT_HAND, PoseLandmark.LEFT_HAND] # Landmarks to ignore
+POSE_DUMMY_VARIABLE      = PoseLandmark.exclude_landmarks(POSE_EXCLUDED_LANDMARKS) # Dummy, it is a method call
 
-DATA_MANAGER             = None
-DATA_FOLDER              = "./experiments/{user_id}/"
-DATA_DATE                = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-DATA_REACH_TYPE          = 0
-DATA_DWELL_TYPE          = 1
+DATA_MANAGER             = None # Object that contains the data manager
+DATA_REF_VECTOR          = [0, -1, 0] # Reference vector for the trunk compensation computation
+DATA_FOLDER              = "./experiments/{user_id}/" # Folder where to save the experiment data
+DATA_DATE                = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") # Date of the experiment (used as a prefix for each saved data files)
 
-OBJ_LAND_RADIUS          = 10   # px
-OBJ_LAND_WIDTH           = 1    # px
-OBJ_LAND_COLOR           = GameController.COLOR_BLUE
+OBJ_LAND_RADIUS          = 10 # px, Radius of the landmarks
+OBJ_LAND_WIDTH           = 1  # px, Width of the landmarks connections
+OBJ_LAND_COLOR           = GameController.COLOR_BLUE # Color of the landmarks
 
-OBJ_FIRST_TEXT_X         = 10   # px
-OBJ_FIRST_TEXT_Y         = 10   # px
-OBJ_SECOND_TEXT_X        = 10   # px
-OBJ_SECOND_TEXT_Y        = 50   # px
-OBJ_THIRD_TEXT_X         = 10   # px
-OBJ_THIRD_TEXT_Y         = 90   # px
-OBJ_TEXT_SIZE            = 40   # px
-OBJ_TARGET_RADIUS        = 20   # px
-OBJ_DWELL_TIME           = 1000 # ms
+OBJ_FIRST_TEXT_X         = 10 # px, x position of the first text (top left)
+OBJ_FIRST_TEXT_Y         = 10 # px, y position
+OBJ_SECOND_TEXT_X        = 10 # px, x position of the second text (top left)
+OBJ_SECOND_TEXT_Y        = 50 # px, y position
+OBJ_THIRD_TEXT_X         = 10 # px, x position of the third text (top left)
+OBJ_THIRD_TEXT_Y         = 90 # px, y position
+OBJ_TEXT_SIZE            = 40 # px, Font size of the texts
+OBJ_TARGET_RADIUS        = 20 # px, Radius of the targets
+OBJ_DWELL_TIME           = 1000 # ms, Time the user has to dwell to validate a step (calibration, start steps)
 
-DIFF_ADAPTER             = None
-DIFF_TYPE                = DifficulyAdapter.TYPE_RULE_BASED
-DIFF_GOAL_SCORE          = 0.75
-DIFF_MARGIN_SCORE        = 0.05
+DIFF_ADAPTER             = None # Object that contains the difficulty adapter (DDA)
+DIFF_TYPE                = DifficulyAdapter.TYPE_DATA_BASED # DDA type to use
+DIFF_GOAL_SCORE          = 0.75 # Goal score that the DDA regulates around
+DIFF_MARGIN_SCORE        = 0.05 # Margin score (ex : 0.75 +- 0.05, goal score is 70% to 80%)
+START_DIFF               = 0.5  # Difficulty levels to begin with
+DIFF_INCREMENT           = 0.05 # Increment used to adjust the parameters
+DIFF_WINDOW_SIZE         = 10   # Size of the window for the score (used by the DDA)
 
-DIFF_MIN_TARGET_ANGLE    = 90   # degrees
-DIFF_MAX_TARGET_ANGLE    = 210  # degrees
-DIFF_MIN_TRUNK_ANGLE     = 0    # degrees
-DIFF_MAX_TRUNK_ANGLE     = 5    # degrees 
-DIFF_DWELL_TIME          = 1000 # ms
+DIFF_MIN_TARGET_ANGLE    = 90   # degrees, Min target angle (reference point is the shoulder, 0 degree is pointing downwards)
+DIFF_MAX_TARGET_ANGLE    = 210  # degrees, Max target angle
+DIFF_MAX_TRUNK_ANGLE     = 5    # degrees, Max trunk compensation allowed to valide a target
+DIFF_DWELL_TIME          = 1000 # ms, Time the user has to dwell to validate a target
 
-DIFF_MIN_TARGET_DISTANCE = 50   # px
-DIFF_MAX_TARGET_DISTANCE = None # px
-DIFF_MIN_TARGET_SIZE     = 10   # px
-DIFF_MAX_TARGET_SIZE     = 50   # px
-DIFF_MIN_REACH_TIME      = 500  # ms
-DIFF_MAX_REACH_TIME      = 5000 # ms
+DIFF_MIN_TARGET_DISTANCE = 50   # px, Min distance of the target (when difficulty parameter is 0)
+DIFF_MAX_TARGET_DISTANCE = None # px, Max distance of the target (when difficulty parameter is 1)
+DIFF_MIN_TARGET_SIZE     = 10   # px, Min size of the target (when difficulty parameter is 1)
+DIFF_MAX_TARGET_SIZE     = 50   # px, Max size of the target (when difficulty parameter is 0)
+DIFF_MIN_REACH_TIME      = 500  # ms, Min allowed reach time (when difficulty parameter is 1)
+DIFF_MAX_REACH_TIME      = 5000 # ms, Max allowed reach time (when difficulty parameter is 0)
 
-MS_CURRENT_STEP          = 0
-MS_CALIBRATION_STEP      = 0
-MS_PLAY_STEP             = 1
+MS_CURRENT_STEP          = 0 # Current step of the step machine
+MS_CALIBRATION_STEP      = 0 # Set current step to this for calibration step
+MS_PLAY_STEP             = 1 # Set current step to this for play step
 
 MEMORY_CALIBRATION = {
     "substep"            : 0,
@@ -376,7 +377,7 @@ def update_step_play(landmarks_as_px):
 
         # Iteration
         DATA_MANAGER.delete_last_iterations()
-        DATA_MANAGER.start_iteration(USER_TRAINED_SIDE, DATA_REACH_TYPE, MEMORY_PLAY["current_target_id"])
+        DATA_MANAGER.start_iteration(USER_TRAINED_SIDE, DataManager.TYPE_REACH, MEMORY_PLAY["current_target_id"])
 
         MEMORY_PLAY["substep"] = 40
 
@@ -451,7 +452,7 @@ def update_step_play(landmarks_as_px):
         GAME_CONTROLLER.create_event_dwell(MEMORY_PLAY["event_dwell_end_id"], MEMORY_PLAY["target_end_id"], landmark_id, DIFF_DWELL_TIME)
 
         # Iteration
-        DATA_MANAGER.start_iteration(USER_TRAINED_SIDE, DATA_DWELL_TYPE, MEMORY_PLAY["current_target_id"])
+        DATA_MANAGER.start_iteration(USER_TRAINED_SIDE, DataManager.TYPE_DWELL, MEMORY_PLAY["current_target_id"])
 
         MEMORY_PLAY["substep"] = 60
 
@@ -516,8 +517,8 @@ def update_step_play(landmarks_as_px):
     # Update the DDA
     # ========
     elif MEMORY_PLAY["substep"] == 70:
-        last_reach_iteration = DATA_MANAGER.get_last_iteration(DATA_REACH_TYPE)
-        last_dwell_iteration = DATA_MANAGER.get_last_iteration(DATA_DWELL_TYPE)
+        last_reach_iteration = DATA_MANAGER.get_last_iteration(DataManager.TYPE_REACH)
+        last_dwell_iteration = DATA_MANAGER.get_last_iteration(DataManager.TYPE_DWELL)
         DIFF_ADAPTER.set_previous_kinematics_and_scores(
             last_reach_iteration, last_dwell_iteration, MEMORY_PLAY["target_succeeded"],
             MEMORY_PLAY["trunk_failed"], MEMORY_PLAY["reach_failed"], MEMORY_PLAY["dwell_failed"]
@@ -670,13 +671,13 @@ def set_parameters(parameters):
     USER_TRAINED_SIDE = DataManager.SIDE_RIGHT if parameters[1] == "right" else DataManager.SIDE_LEFT
 
 def set_utils():
-    global GAME_CONTROLLER, CAMERA_READER, POSE_ESTIMATOR, DATA_MANAGER, DATA_FOLDER, DIFF_ADAPTER
+    global GAME_CONTROLLER, CAMERA_READER, POSE_ESTIMATOR, DATA_FOLDER, DATA_MANAGER, DIFF_ADAPTER
     GAME_CONTROLLER = GameController(GAME_FPS, GAME_WIDTH, GAME_HEIGHT, WINDOW_NAME, WINDOW_ICON)
     CAMERA_READER = CameraReader(CAMERA_TYPE, CAMERA_WIDTH, CAMERA_HEIGHT, CAMERA_FPS)
     POSE_ESTIMATOR = PoseEstimator(POSE_MODEL_COMPLEXITY, POSE_MIN_VISIBILITY)
     DATA_FOLDER = DATA_FOLDER.format(user_id = USER_ID)
-    DATA_MANAGER = DataManager(DATA_FOLDER, DATA_DATE)
-    DIFF_ADAPTER = DifficulyAdapter(DIFF_TYPE, DIFF_GOAL_SCORE, DIFF_MARGIN_SCORE, DATA_FOLDER, DATA_DATE)
+    DATA_MANAGER = DataManager(DATA_REF_VECTOR, DATA_FOLDER, DATA_DATE)
+    DIFF_ADAPTER = DifficulyAdapter(DIFF_TYPE, DIFF_GOAL_SCORE, DIFF_MARGIN_SCORE, START_DIFF, DIFF_INCREMENT, DIFF_WINDOW_SIZE, DATA_FOLDER, DATA_DATE)
 
 def set_background():
     color = GameController.COLOR_BLACK
@@ -700,8 +701,6 @@ def get_image():
     result = CAMERA_READER.get_image()
     if result is None: return None
     image = result[0]
-    
-    # print(str(result[1]) + " " + str(result[2]))
     
     return image
 
@@ -730,8 +729,7 @@ def get_landmarks_as_px(landmarks):
 def update_steps(landmarks_as_px):
     if MS_CURRENT_STEP == MS_CALIBRATION_STEP:
         update_step_calibration(landmarks_as_px)
-    
-    if MS_CURRENT_STEP == MS_PLAY_STEP:
+    elif MS_CURRENT_STEP == MS_PLAY_STEP:
         update_step_play(landmarks_as_px)
 
 def update_landmarks(landmarks_as_px):
