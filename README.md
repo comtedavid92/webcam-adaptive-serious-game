@@ -251,4 +251,4 @@ python __play_game.py "foobar" "right" "data" "model_training/2026-03-29-18-15-4
 
 ## Disclaimer
 
-All data in this repository are mine, and therefore do not raise any personal data protection issues.
+The datasets generated during this study are not publicly available to protect participant privacy, as complete anonymisation could not be guaranteed. Anonymised summary statistics and the trained model are available in the project repository.
