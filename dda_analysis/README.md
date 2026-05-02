@@ -13,17 +13,6 @@ The first participants played with the rule-based DDA :
 
 | Participant | Profile 1 | Profile 2 | Profile 3 |
 |-------------|-----------|-----------|-----------|
-| 0001        | 1x        | 1x        | 1x        |
-| 0002        | 1x        | 1x        | 1x        |
-| 0007        | 1x        | 1x        | 1x        |
-| 0008        | 1x        | 1x        | 1x        |
-| 0009        | 1x        | 1x        | 1x        |
-| 0010        | 1x        | 1x        | 1x        |
-
-The second participants played with the data-based DDA :
-
-| Participant | Profile 1 | Profile 2 | Profile 3 |
-|-------------|-----------|-----------|-----------|
 | 0001        | 0x        | 1x        | 0x        |
 | 0002        | 0x        | 0x        | 1x        |
 | 0011        | 1x        | 1x        | 1x        |
@@ -32,6 +21,17 @@ The second participants played with the data-based DDA :
 | 0015        | 1x        | 1x        | 1x        |
 | 0016        | 1x        | 0x        | 1x        |
 | 0017        | 1x        | 1x        | 1x        |
+
+The second participants played with the data-based DDA :
+
+| Participant | Profile 1 | Profile 2 | Profile 3 |
+|-------------|-----------|-----------|-----------|
+| 0001        | 1x        | 1x        | 1x        |
+| 0002        | 1x        | 1x        | 1x        |
+| 0007        | 1x        | 1x        | 1x        |
+| 0008        | 1x        | 1x        | 1x        |
+| 0009        | 1x        | 1x        | 1x        |
+| 0010        | 1x        | 1x        | 1x        |
 
 This is around 600 targets per profile and per DDA, for a total of 3600 targets.
 
